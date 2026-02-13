@@ -25,3 +25,4 @@ function deleteRecord(id) {
 function clearAllRecords(){
   localStorage.removeItem(KEY);
 }
+
