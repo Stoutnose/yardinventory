@@ -1,8 +1,8 @@
-// ============================================
-// SURYA PARKING YARD – FULL INVENTORY SYSTEM
-// ============================================
+// ============================
+// SAFE INVENTORY SYSTEM
+// ============================
 
-const STORAGE_KEY = "surya_inventory_v3";
+const STORAGE_KEY = "surya_inventory_safe";
 
 function loadRecords(){
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -30,167 +30,68 @@ function deleteRecord(id){
   saveRecords(records);
 }
 
-// =====================
-// HELPERS
-// =====================
+// ---------- HELPERS ----------
 function $(id){ return document.getElementById(id); }
-function val(id){ return $(id)?.value || ""; }
-function setVal(id,v){ if($(id)) $(id).value = v || ""; }
-function checked(id){ return $(id)?.checked || false; }
-function setChecked(id,v){ if($(id)) $(id).checked = v || false; }
+function safeClick(id, fn){
+  const el = $(id);
+  if(el) el.onclick = fn;
+}
 
 function generateInv(){
   const d = new Date();
-  return `INV-${d.getFullYear()}${d.getMonth()+1}${d.getDate()}-${Math.floor(Math.random()*1000)}`;
+  return "INV-" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate() + "-" + Math.floor(Math.random()*1000);
 }
 
-// =====================
-// VIEW SWITCH
-// =====================
+// ---------- VIEW SWITCH ----------
 function show(view){
-  $("dashboardView").classList.toggle("hidden", view !== "dash");
-  $("formView").classList.toggle("hidden", view !== "form");
+  if($("dashboardView")) $("dashboardView").classList.toggle("hidden", view !== "dash");
+  if($("formView")) $("formView").classList.toggle("hidden", view !== "form");
 }
 
-// =====================
-// FORM SAVE
-// =====================
+// ---------- FORM ----------
 let currentId = null;
 
 function getFormData(status){
-
   return {
     id: currentId || crypto.randomUUID(),
-    inventoryNo: val("inventoryNo") || generateInv(),
-    slNo: val("slNo"),
-    inventoryDate: val("inventoryDate"),
-
-    agreementNo: val("agreementNo"),
-    financeName: val("financeName"),
-    customerName: val("customerName"),
-    customerAddress: val("customerAddress"),
-    repoAgencyName: val("repoAgencyName"),
-
-    seizedAt: val("seizedAt"),
-    yardInAt: val("yardInAt"),
-
-    vehicleType: val("vehicleType"),
-    vehicleNo: val("vehicleNo"),
-    make: val("make"),
-    model: val("model"),
-    mfgYear: val("mfgYear"),
-    engineNo: val("engineNo"),
-    chassisNo: val("chassisNo"),
-
-    documents:{
-      rc: checked("docRC"),
-      tax: checked("docTax"),
-      permit: checked("docPermit"),
-      insurance: checked("docInsurance")
-    },
-
-    condition:{
-      batteryMake: val("batteryMake"),
-      batteryNo: val("batteryNo"),
-      batteryCondition: val("batteryCondition"),
-      engineStatus: val("engineStatus"),
-      accident: val("accidentFlag"),
-      towing: val("towingFlag"),
-      keyEngine: checked("keyEngine"),
-      keyDoor: checked("keyDoor"),
-      keyDslTank: checked("keyDslTank"),
-      keyOther: checked("keyOther")
-    },
-
-    checklist:{
-      chkFenders: checked("chkFenders"),
-      chkHeadLights: checked("chkHeadLights"),
-      chkHorn: checked("chkHorn")
-    },
-
+    inventoryNo: $("inventoryNo")?.value || generateInv(),
+    vehicleNo: $("vehicleNo")?.value || "",
+    customerName: $("customerName")?.value || "",
+    vehicleType: $("vehicleType")?.value || "",
+    financeName: $("financeName")?.value || "",
+    yardInAt: $("yardInAt")?.value || "",
     status: status,
     updatedAt: new Date().toISOString()
   };
 }
 
-// =====================
-// LOAD FORM
-// =====================
 function fillForm(r){
-
   currentId = r.id;
-
-  setVal("inventoryNo", r.inventoryNo);
-  setVal("slNo", r.slNo);
-  setVal("inventoryDate", r.inventoryDate);
-
-  setVal("agreementNo", r.agreementNo);
-  setVal("financeName", r.financeName);
-  setVal("customerName", r.customerName);
-  setVal("customerAddress", r.customerAddress);
-  setVal("repoAgencyName", r.repoAgencyName);
-
-  setVal("seizedAt", r.seizedAt);
-  setVal("yardInAt", r.yardInAt);
-
-  setVal("vehicleType", r.vehicleType);
-  setVal("vehicleNo", r.vehicleNo);
-  setVal("make", r.make);
-  setVal("model", r.model);
-  setVal("mfgYear", r.mfgYear);
-  setVal("engineNo", r.engineNo);
-  setVal("chassisNo", r.chassisNo);
-
-  setChecked("docRC", r.documents?.rc);
-  setChecked("docTax", r.documents?.tax);
-  setChecked("docPermit", r.documents?.permit);
-  setChecked("docInsurance", r.documents?.insurance);
-
-  setVal("batteryMake", r.condition?.batteryMake);
-  setVal("batteryNo", r.condition?.batteryNo);
-  setVal("batteryCondition", r.condition?.batteryCondition);
-  setVal("engineStatus", r.condition?.engineStatus);
-  setVal("accidentFlag", r.condition?.accident);
-  setVal("towingFlag", r.condition?.towing);
-
-  setChecked("keyEngine", r.condition?.keyEngine);
-  setChecked("keyDoor", r.condition?.keyDoor);
-  setChecked("keyDslTank", r.condition?.keyDslTank);
-  setChecked("keyOther", r.condition?.keyOther);
-
-  setChecked("chkFenders", r.checklist?.chkFenders);
-  setChecked("chkHeadLights", r.checklist?.chkHeadLights);
-  setChecked("chkHorn", r.checklist?.chkHorn);
+  if($("inventoryNo")) $("inventoryNo").value = r.inventoryNo;
+  if($("vehicleNo")) $("vehicleNo").value = r.vehicleNo;
+  if($("customerName")) $("customerName").value = r.customerName;
+  if($("vehicleType")) $("vehicleType").value = r.vehicleType;
+  if($("financeName")) $("financeName").value = r.financeName;
+  if($("yardInAt")) $("yardInAt").value = r.yardInAt;
 }
 
-// =====================
-// DASHBOARD
-// =====================
-function computeStats(records){
-  return {
-    total: records.length,
-    draft: records.filter(r=>r.status==="Draft").length,
-    submitted: records.filter(r=>r.status==="Submitted").length
-  };
-}
-
+// ---------- DASHBOARD ----------
 function renderDashboard(){
-
   const records = loadRecords();
-  const stats = computeStats(records);
 
-  $("kpiRow").innerHTML = `
-    <div class="kpi">Total: ${stats.total}</div>
-    <div class="kpi">Draft: ${stats.draft}</div>
-    <div class="kpi">Submitted: ${stats.submitted}</div>
-  `;
+  const recent = $("recentList");
+  if(!recent) return;
 
-  $("recentList").innerHTML = "";
+  recent.innerHTML = "";
+
+  if(records.length === 0){
+    recent.innerHTML = "<div style='padding:15px;'>No Records Yet</div>";
+    return;
+  }
 
   records.slice(0,5).forEach(r=>{
     const div = document.createElement("div");
     div.className="record";
-
     div.innerHTML = `
       <div>
         <strong>${r.vehicleNo}</strong>
@@ -204,47 +105,43 @@ function renderDashboard(){
       show("form");
     };
 
-    $("recentList").appendChild(div);
+    recent.appendChild(div);
   });
 }
 
-// =====================
-// EVENTS
-// =====================
-$("btnNew").onclick = ()=>{
+// ---------- EVENTS ----------
+safeClick("btnNew", ()=>{
   currentId = null;
-  $("inventoryNo").value = generateInv();
+  if($("inventoryNo")) $("inventoryNo").value = generateInv();
   show("form");
-};
+});
 
-$("btnSaveDraft").onclick = ()=>{
+safeClick("btnSaveDraft", ()=>{
   const record = getFormData("Draft");
   upsertRecord(record);
   show("dash");
   renderDashboard();
-};
+});
 
-$("btnSubmit").onclick = ()=>{
+safeClick("btnSubmit", ()=>{
   const record = getFormData("Submitted");
   upsertRecord(record);
   show("dash");
   renderDashboard();
-};
+});
 
-$("btnDelete").onclick = ()=>{
+safeClick("btnDelete", ()=>{
   if(!currentId) return;
   deleteRecord(currentId);
   show("dash");
   renderDashboard();
-};
+});
 
-$("btnDashboard").onclick = ()=>{
+safeClick("btnDashboard", ()=>{
   show("dash");
   renderDashboard();
-};
+});
 
-// =====================
-// INIT
-// =====================
+// ---------- INIT ----------
 show("dash");
 renderDashboard();
