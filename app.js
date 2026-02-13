@@ -62,17 +62,17 @@ function getVal(id){ return ($(id).value || "").trim(); }
 function setChecked(id, v){ $(id).checked = !!v; }
 function getChecked(id){ return $(id).checked; }
 
-// ---------- Signature pad ----------
+// ---------- Signature pad (FIXED for mobile) ----------
 function initSignaturePad(canvas){
   const ctx = canvas.getContext("2d");
 
-  // Fit canvas to its CSS size so drawing works well on phone/tablet/desktop
   function fitCanvas(){
     const rect = canvas.getBoundingClientRect();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const w = Math.max(1, Math.floor(rect.width * dpr));
     const h = Math.max(1, Math.floor(rect.height * dpr));
     if (canvas.width !== w || canvas.height !== h){
+      // NOTE: resizing clears the drawing (acceptable for demo)
       canvas.width = w;
       canvas.height = h;
     }
@@ -83,50 +83,50 @@ function initSignaturePad(canvas){
   }
 
   fitCanvas();
+  window.addEventListener("resize", fitCanvas);
 
-  const pad = { drawing:false, last:null };
+  let drawing = false;
+  let last = null;
 
-  function pos(e){
+  function posFromEvent(e){
     const rect = canvas.getBoundingClientRect();
-    const clientX = (e.touches ? e.touches[0].clientX : e.clientX);
-    const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
     return {
-      x: (clientX - rect.left) * (canvas.width / rect.width),
-      y: (clientY - rect.top) * (canvas.height / rect.height),
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height),
     };
   }
 
-  function start(e){
+  // Prevent page scroll ONLY while signing on the canvas
+  canvas.style.touchAction = "none";
+
+  canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    pad.drawing = true;
-    pad.last = pos(e);
-  }
-  function move(e){
-    if(!pad.drawing) return;
+    drawing = true;
+    last = posFromEvent(e);
+    canvas.setPointerCapture(e.pointerId);
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    if(!drawing) return;
     e.preventDefault();
-    const p = pos(e);
+    const p = posFromEvent(e);
     ctx.beginPath();
-    ctx.moveTo(pad.last.x, pad.last.y);
+    ctx.moveTo(last.x, last.y);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    pad.last = p;
-  }
-  function end(e){
+    last = p;
+  });
+
+  function stop(e){
+    if(!drawing) return;
     e.preventDefault();
-    pad.drawing = false;
-    pad.last = null;
+    drawing = false;
+    last = null;
+    try { canvas.releasePointerCapture(e.pointerId); } catch {}
   }
 
-  canvas.addEventListener("mousedown", start);
-  canvas.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", end);
-
-  canvas.addEventListener("touchstart", start, {passive:false});
-  canvas.addEventListener("touchmove", move, {passive:false});
-  window.addEventListener("touchend", end, {passive:false});
-
-  // Re-fit canvas on resize (clears signature; acceptable for demo)
-  window.addEventListener("resize", () => fitCanvas());
+  canvas.addEventListener("pointerup", stop);
+  canvas.addEventListener("pointercancel", stop);
 }
 
 function clearCanvas(canvas){
@@ -275,7 +275,6 @@ function clearFormToBlankNew(){
   currentPhotos = [];
   renderPhotos();
 
-  // clear all inputs
   const inputs = document.querySelectorAll("input, select, textarea");
   inputs.forEach(el => {
     if(el.type === "checkbox") el.checked = false;
@@ -283,7 +282,6 @@ function clearFormToBlankNew(){
     else el.value = "";
   });
 
-  // reset signature pads
   clearCanvas(sigCanvas1); clearCanvas(sigCanvas2); clearCanvas(sigCanvas3);
   setStatusUI("Draft");
 }
@@ -291,7 +289,6 @@ function clearFormToBlankNew(){
 function fillForm(r){
   currentId = r.id;
 
-  // Basic
   setVal("slNo", r.slNo);
   setVal("inventoryNo", r.inventoryNo || newInventoryNo());
   setVal("inventoryDate", r.inventoryDate);
@@ -312,14 +309,12 @@ function fillForm(r){
   setVal("odometerKm", r.odometerKm);
   setVal("fuelPct", r.fuelPct);
 
-  // Tyres
   setVal("tyreFLMake", r.tyres?.fl?.make); setVal("tyreFLSize", r.tyres?.fl?.size); setVal("tyreFLNo", r.tyres?.fl?.no); setVal("tyreFLType", r.tyres?.fl?.type || "Original");
   setVal("tyreFRMake", r.tyres?.fr?.make); setVal("tyreFRSize", r.tyres?.fr?.size); setVal("tyreFRNo", r.tyres?.fr?.no); setVal("tyreFRType", r.tyres?.fr?.type || "Original");
   setVal("tyreRLMake", r.tyres?.rl?.make); setVal("tyreRLSize", r.tyres?.rl?.size); setVal("tyreRLNo", r.tyres?.rl?.no); setVal("tyreRLType", r.tyres?.rl?.type || "Original");
   setVal("tyreRRMake", r.tyres?.rr?.make); setVal("tyreRRSize", r.tyres?.rr?.size); setVal("tyreRRNo", r.tyres?.rr?.no); setVal("tyreRRType", r.tyres?.rr?.type || "Original");
   setVal("tyreSPMake", r.tyres?.sp?.make); setVal("tyreSPSize", r.tyres?.sp?.size); setVal("tyreSPNo", r.tyres?.sp?.no); setVal("tyreSPType", r.tyres?.sp?.type || "Original");
 
-  // Condition
   setVal("batteryMake", r.condition?.batteryMake);
   setVal("batteryNo", r.condition?.batteryNo);
   setVal("batteryCondition", r.condition?.batteryCondition);
@@ -333,14 +328,11 @@ function fillForm(r){
   setChecked("keyOther", r.condition?.keys?.otherKey);
   setVal("keyOtherNote", r.condition?.keys?.otherNote);
 
-  // Checklist
   setChecklist(r.checklist);
 
-  // Photos
   currentPhotos = Array.isArray(r.photos) ? r.photos : [];
   renderPhotos();
 
-  // Signatures
   sigName1.value = r.signatures?.surrender?.name || "";
   sigName2.value = r.signatures?.yard?.name || "";
   sigName3.value = r.signatures?.godown?.name || "";
@@ -350,11 +342,7 @@ function fillForm(r){
   dataUrlToCanvas(sigCanvas2, r.signatures?.yard?.image);
   dataUrlToCanvas(sigCanvas3, r.signatures?.godown?.image);
 
-  // Status & inv no
-  const status = r.status || "Draft";
-  setStatusUI(status);
-
-  // keep inventoryNo stable
+  setStatusUI(r.status || "Draft");
   setVal("inventoryNo", r.inventoryNo || newInventoryNo());
 }
 
@@ -374,9 +362,8 @@ function renderList(){
     if(!okStatus) return false;
     if(!q) return true;
 
-    const hay = [
-      r.inventoryNo, r.vehicleNo, r.customerName, r.financeName, r.agreementNo
-    ].filter(Boolean).join(" ").toLowerCase();
+    const hay = [r.inventoryNo, r.vehicleNo, r.customerName, r.financeName, r.agreementNo]
+      .filter(Boolean).join(" ").toLowerCase();
     return hay.includes(q);
   });
 
@@ -420,20 +407,11 @@ function renderList(){
 }
 
 // Events
-btnNew.onclick = () => {
-  // NEW: open a completely empty form for new entry
-  currentId = null;
-  clearFormToBlankNew();
-  show("form");
-};
-
+btnNew.onclick = () => { currentId = null; clearFormToBlankNew(); show("form"); };
 btnDashboard.onclick = () => { renderList(); show("dash"); };
 btnCancel.onclick = () => { renderList(); show("dash"); };
 
-btnPrint.onclick = () => {
-  if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
-  window.print();
-};
+btnPrint.onclick = () => { if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo()); window.print(); };
 
 btnSaveDraft.onclick = () => {
   if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
@@ -447,7 +425,6 @@ btnSaveDraft.onclick = () => {
 btnSubmit.onclick = () => {
   const err = validateForSubmit();
   if(err) return alert(err);
-
   if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
   const rec = getRecordFromForm("Submitted");
   upsertRecord(rec);
@@ -530,16 +507,7 @@ function seedSampleDataIfEmpty(){
         rr: { make: "Apollo", size: "195R15", no: "AP-77804", type: "Original" },
         sp: { make: "Apollo", size: "195R15", no: "AP-77805", type: "Original" }
       },
-      checklist: {
-        chkFenders: true, chkHeadLights: true, chkParkLights: true, chkHorn: true, chkSideLights: true,
-        chkFrontBumper: true, chkRadiatorCap: true, chkWindshield: true, chkWiper: true, chkTankCap: true,
-        chkRearBumper: true, chkRearLights: false, chkTrapalin: true, chkDoorHandles: true, chkDoorGlass: true,
-        chkInstrumentPanel: true, chkSpeedometer: true, chkRearViewMirror: true, chkCeilingLights: false,
-        chkRubberMats: false, chkMudguard: true, chkMudLamp: true, chkSunVisor: true, chkStepneyWheel: true,
-        chkTVLCD: false, chkCDDVD: false, chkAmplifier: false, chkSelfStarter: true, chkAlternator: true,
-        chkWheelSpanner: true, chkAntenna: true, chkAC: false, chkCentralLock: false, chkBadges: true,
-        chkLuggageCarrier: true
-      },
+      checklist: {},
       condition: {
         batteryMake: "Exide",
         batteryNo: "EX-660012",
@@ -550,11 +518,7 @@ function seedSampleDataIfEmpty(){
         keys: { engineKey: true, doorKey: true, dslTankKey: true, otherKey: false, otherNote: "" }
       },
       photos: [],
-      signatures: {
-        surrender: { name: "Shiva Prasad", image: "" },
-        yard: { name: "M. Srinivas", image: "" },
-        godown: { name: "K. Ramesh", image: "" }
-      },
+      signatures: { surrender: { name: "", image: "" }, yard: { name: "", image: "" }, godown: { name: "", image: "" } },
       status: "Submitted",
       updatedAt: nowIso
     }
