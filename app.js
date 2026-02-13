@@ -1,94 +1,114 @@
-// ---------- Helpers ----------
-const $ = (id) => document.getElementById(id);
-const dashboardView = $("dashboardView");
-const formView = $("formView");
-const recordsList = $("recordsList");
+// Views
+const dashboardView = document.getElementById("dashboardView");
+const formView = document.getElementById("formView");
 
-const btnDashboard = $("btnDashboard");
-const btnNew = $("btnNew");
-const btnPrint = $("btnPrint");
+// Top buttons
+const btnDashboard = document.getElementById("btnDashboard");
+const btnNew = document.getElementById("btnNew");
+const btnPrint = document.getElementById("btnPrint");
 
-const btnSaveDraft = $("btnSaveDraft");
-const btnSubmit = $("btnSubmit");
-const btnCancel = $("btnCancel");
-const btnDelete = $("btnDelete");
+// Dashboard controls
+const recordsList = document.getElementById("recordsList");
+const searchBox = document.getElementById("searchBox");
+const statusFilter = document.getElementById("statusFilter");
+const btnExport = document.getElementById("btnExport");
+const btnClearAll = document.getElementById("btnClearAll");
 
-const btnExport = $("btnExport");
-const btnClearAll = $("btnClearAll");
+// Form action buttons
+const btnSaveDraft = document.getElementById("btnSaveDraft");
+const btnSubmit = document.getElementById("btnSubmit");
+const btnCancel = document.getElementById("btnCancel");
+const btnDelete = document.getElementById("btnDelete");
 
-const searchBox = $("searchBox");
-const statusFilter = $("statusFilter");
+// Status badge
+const statusBadge = document.getElementById("statusBadge");
 
-const statusBadge = $("statusBadge");
+// Signature elements
+const sigCanvas1 = document.getElementById("sigCanvas1");
+const sigCanvas2 = document.getElementById("sigCanvas2");
+const sigCanvas3 = document.getElementById("sigCanvas3");
 
-const sigCanvas1 = $("sigCanvas1");
-const sigCanvas2 = $("sigCanvas2");
-const sigCanvas3 = $("sigCanvas3");
+const sigName1 = document.getElementById("sigName1");
+const sigName2 = document.getElementById("sigName2");
+const sigName3 = document.getElementById("sigName3");
 
-const sigName1 = $("sigName1");
-const sigName2 = $("sigName2");
-const sigName3 = $("sigName3");
+const btnClearSig1 = document.getElementById("btnClearSig1");
+const btnClearSig2 = document.getElementById("btnClearSig2");
+const btnClearSig3 = document.getElementById("btnClearSig3");
 
-const btnClearSig1 = $("btnClearSig1");
-const btnClearSig2 = $("btnClearSig2");
-const btnClearSig3 = $("btnClearSig3");
-
-const photoType = $("photoType");
-const photoFile = $("photoFile");
-const btnAddPhoto = $("btnAddPhoto");
-const photoGrid = $("photoGrid");
+// Photos
+const photoType = document.getElementById("photoType");
+const photoFile = document.getElementById("photoFile");
+const btnAddPhoto = document.getElementById("btnAddPhoto");
+const photoGrid = document.getElementById("photoGrid");
 
 let currentId = null;
 let currentPhotos = [];
 
 // ---------- View routing ----------
-function show(view){
+function show(view) {
   dashboardView.classList.toggle("hidden", view !== "dash");
   formView.classList.toggle("hidden", view !== "form");
-  window.scrollTo(0,0);
+  window.scrollTo(0, 0);
 }
 
-function newInventoryNo(){
+function newInventoryNo() {
   const d = new Date();
   const yyyy = d.getFullYear();
-  const mm = String(d.getMonth()+1).padStart(2,"0");
-  const dd = String(d.getDate()).padStart(2,"0");
-  const rnd = Math.floor(Math.random()*9000+1000);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const rnd = Math.floor(Math.random() * 9000 + 1000);
   return `INV-${yyyy}${mm}${dd}-${rnd}`;
 }
 
-function setVal(id, v){ $(id).value = v ?? ""; }
-function getVal(id){ return ($(id).value || "").trim(); }
-function setChecked(id, v){ $(id).checked = !!v; }
-function getChecked(id){ return $(id).checked; }
+function setVal(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.value = v ?? "";
+}
+function getVal(id) {
+  const el = document.getElementById(id);
+  return (el?.value || "").trim();
+}
+function setChecked(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.checked = !!v;
+}
+function getChecked(id) {
+  const el = document.getElementById(id);
+  return !!el?.checked;
+}
 
-// ---------- Signature pad (FIXED for mobile) ----------
+// ---------- Signature pad (MOBILE FIX) ----------
 function initSignaturePad(canvas){
   const ctx = canvas.getContext("2d");
 
+  // Make drawing accurate on high-DPI screens and responsive sizes
   function fitCanvas(){
     const rect = canvas.getBoundingClientRect();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const w = Math.max(1, Math.floor(rect.width * dpr));
     const h = Math.max(1, Math.floor(rect.height * dpr));
     if (canvas.width !== w || canvas.height !== h){
-      // NOTE: resizing clears the drawing (acceptable for demo)
       canvas.width = w;
-      canvas.height = h;
+      canvas.height = h; // resizing clears; fine for demo
     }
     ctx.lineWidth = 2.2 * dpr;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "#0a53a8";
+    ctx.strokeStyle = "rgba(10,83,168,0.95)";
   }
 
   fitCanvas();
   window.addEventListener("resize", fitCanvas);
 
+  // IMPORTANT: block scrolling ONLY on the canvas (NOT window),
+  // otherwise mobile "click" events can get cancelled.
+  canvas.style.touchAction = "none";
+
   let drawing = false;
   let last = null;
 
-  function posFromEvent(e){
+  function posFromPointerEvent(e){
     const rect = canvas.getBoundingClientRect();
     return {
       x: (e.clientX - rect.left) * (canvas.width / rect.width),
@@ -96,20 +116,17 @@ function initSignaturePad(canvas){
     };
   }
 
-  // Prevent page scroll ONLY while signing on the canvas
-  canvas.style.touchAction = "none";
-
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     drawing = true;
-    last = posFromEvent(e);
+    last = posFromPointerEvent(e);
     canvas.setPointerCapture(e.pointerId);
   });
 
   canvas.addEventListener("pointermove", (e) => {
     if(!drawing) return;
     e.preventDefault();
-    const p = posFromEvent(e);
+    const p = posFromPointerEvent(e);
     ctx.beginPath();
     ctx.moveTo(last.x, last.y);
     ctx.lineTo(p.x, p.y);
@@ -129,22 +146,76 @@ function initSignaturePad(canvas){
   canvas.addEventListener("pointercancel", stop);
 }
 
-function clearCanvas(canvas){
+function clearCanvas(canvas) {
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
-function canvasToDataUrl(canvas){
+function canvasToDataUrl(canvas) {
   return canvas.toDataURL("image/png");
 }
-function dataUrlToCanvas(canvas, dataUrl){
-  if(!dataUrl) return;
-  const ctx = canvas.getContext("2d");
+function dataUrlToCanvas(canvas, dataUrl) {
+  if (!dataUrl) return;
   const img = new Image();
   img.onload = () => {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   };
   img.src = dataUrl;
+}
+
+// ---------- Photos ----------
+async function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotos() {
+  photoGrid.innerHTML = "";
+  if (!currentPhotos.length) {
+    photoGrid.innerHTML = `<div class="meta">No photos added.</div>`;
+    return;
+  }
+
+  currentPhotos.forEach((p, idx) => {
+    const card = document.createElement("div");
+    card.className = "photo-card";
+    card.innerHTML = `
+      <img src="${p.dataUrl}" alt="${p.type}">
+      <div class="photo-meta">
+        <span class="type">${p.type}</span>
+        <button class="danger" data-idx="${idx}">Remove</button>
+      </div>
+    `;
+    card.querySelector("button").onclick = () => {
+      currentPhotos.splice(idx, 1);
+      renderPhotos();
+    };
+    photoGrid.appendChild(card);
+  });
+}
+
+btnAddPhoto.onclick = async () => {
+  const file = photoFile.files?.[0];
+  if (!file) return alert("Choose a photo first.");
+  const dataUrl = await fileToDataUrl(file);
+  currentPhotos.push({ type: photoType.value, dataUrl });
+  photoFile.value = "";
+  renderPhotos();
+};
+
+// ---------- Status UI ----------
+function setStatusUI(status) {
+  statusBadge.textContent = status;
+  statusBadge.style.background =
+    status === "Submitted" ? "rgba(16,185,129,.12)" : "rgba(10,83,168,.08)";
+  statusBadge.style.borderColor =
+    status === "Submitted" ? "rgba(16,185,129,.35)" : "rgba(10,83,168,.35)";
+  statusBadge.style.color = status === "Submitted" ? "#0f7a58" : "#0a53a8";
 }
 
 // ---------- Checklist mapping ----------
@@ -157,63 +228,18 @@ const checklistIds = [
   "chkWheelSpanner","chkAntenna","chkAC","chkCentralLock","chkBadges","chkLuggageCarrier"
 ];
 
-function getChecklist(){
+function getChecklist() {
   const o = {};
-  checklistIds.forEach(id => o[id] = getChecked(id));
+  checklistIds.forEach(id => (o[id] = getChecked(id)));
   return o;
 }
-function setChecklist(o){
+function setChecklist(o) {
   checklistIds.forEach(id => setChecked(id, o?.[id]));
 }
 
-// ---------- Photos ----------
-function renderPhotos(){
-  photoGrid.innerHTML = "";
-  if(!currentPhotos.length){
-    photoGrid.innerHTML = `<div class="meta">No photos added.</div>`;
-    return;
-  }
-  currentPhotos.forEach((p, idx) => {
-    const card = document.createElement("div");
-    card.className = "photo-card";
-    card.innerHTML = `
-      <img src="${p.dataUrl}" alt="${p.type}">
-      <div class="photo-meta">
-        <span class="type">${p.type}</span>
-        <button class="danger" data-idx="${idx}">Remove</button>
-      </div>
-    `;
-    card.querySelector("button").onclick = () => {
-      currentPhotos.splice(idx,1);
-      renderPhotos();
-    };
-    photoGrid.appendChild(card);
-  });
-}
-
-btnAddPhoto.onclick = () => {
-  const file = photoFile.files?.[0];
-  if(!file) return alert("Choose a photo first.");
-  const reader = new FileReader();
-  reader.onload = () => {
-    currentPhotos.push({ type: photoType.value, dataUrl: reader.result });
-    photoFile.value = "";
-    renderPhotos();
-  };
-  reader.readAsDataURL(file);
-};
-
-// ---------- Status UI ----------
-function setStatusUI(status){
-  statusBadge.textContent = status;
-  statusBadge.style.background = status === "Submitted" ? "rgba(16,185,129,.12)" : "rgba(10,83,168,.08)";
-  statusBadge.style.borderColor = status === "Submitted" ? "rgba(16,185,129,.35)" : "rgba(10,83,168,.35)";
-  statusBadge.style.color = status === "Submitted" ? "#0f7a58" : "var(--blue)";
-}
-
 // ---------- Form serialization ----------
-function getRecordFromForm(status){
-  const id = currentId || crypto.randomUUID();
+function getRecordFromForm(status) {
+  const id = currentId || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()));
 
   return {
     id,
@@ -270,23 +296,25 @@ function getRecordFromForm(status){
   };
 }
 
-function clearFormToBlankNew(){
+function clearFormToBlankNew() {
   currentId = null;
   currentPhotos = [];
   renderPhotos();
 
   const inputs = document.querySelectorAll("input, select, textarea");
   inputs.forEach(el => {
-    if(el.type === "checkbox") el.checked = false;
-    else if(el.id === "inventoryNo") el.value = newInventoryNo();
+    if (el.type === "checkbox") el.checked = false;
+    else if (el.id === "inventoryNo") el.value = newInventoryNo();
     else el.value = "";
   });
 
-  clearCanvas(sigCanvas1); clearCanvas(sigCanvas2); clearCanvas(sigCanvas3);
+  clearCanvas(sigCanvas1);
+  clearCanvas(sigCanvas2);
+  clearCanvas(sigCanvas3);
   setStatusUI("Draft");
 }
 
-function fillForm(r){
+function fillForm(r) {
   currentId = r.id;
 
   setVal("slNo", r.slNo);
@@ -337,30 +365,32 @@ function fillForm(r){
   sigName2.value = r.signatures?.yard?.name || "";
   sigName3.value = r.signatures?.godown?.name || "";
 
-  clearCanvas(sigCanvas1); clearCanvas(sigCanvas2); clearCanvas(sigCanvas3);
+  clearCanvas(sigCanvas1);
+  clearCanvas(sigCanvas2);
+  clearCanvas(sigCanvas3);
+
   dataUrlToCanvas(sigCanvas1, r.signatures?.surrender?.image);
   dataUrlToCanvas(sigCanvas2, r.signatures?.yard?.image);
   dataUrlToCanvas(sigCanvas3, r.signatures?.godown?.image);
 
   setStatusUI(r.status || "Draft");
-  setVal("inventoryNo", r.inventoryNo || newInventoryNo());
 }
 
-function validateForSubmit(){
-  if(!getVal("vehicleNo")) return "Vehicle No is required.";
-  if(!getVal("customerName")) return "Customer Name is required.";
+function validateForSubmit() {
+  if (!getVal("vehicleNo")) return "Vehicle No is required.";
+  if (!getVal("customerName")) return "Customer Name is required.";
   return null;
 }
 
-// Dashboard rendering
-function renderList(){
+// ---------- Dashboard rendering ----------
+function renderList() {
   const q = (searchBox.value || "").trim().toLowerCase();
   const status = statusFilter.value;
 
   const records = loadRecords().filter(r => {
     const okStatus = (status === "ALL") ? true : (r.status === status);
-    if(!okStatus) return false;
-    if(!q) return true;
+    if (!okStatus) return false;
+    if (!q) return true;
 
     const hay = [r.inventoryNo, r.vehicleNo, r.customerName, r.financeName, r.agreementNo]
       .filter(Boolean).join(" ").toLowerCase();
@@ -368,7 +398,7 @@ function renderList(){
   });
 
   recordsList.innerHTML = "";
-  if(!records.length){
+  if (!records.length) {
     recordsList.innerHTML = `<div class="meta">No records found.</div>`;
     return;
   }
@@ -406,15 +436,15 @@ function renderList(){
   });
 }
 
-// Events
-btnNew.onclick = () => { currentId = null; clearFormToBlankNew(); show("form"); };
+// ---------- Events ----------
+btnNew.onclick = () => { clearFormToBlankNew(); show("form"); };
 btnDashboard.onclick = () => { renderList(); show("dash"); };
 btnCancel.onclick = () => { renderList(); show("dash"); };
 
-btnPrint.onclick = () => { if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo()); window.print(); };
+btnPrint.onclick = () => { window.print(); };
 
 btnSaveDraft.onclick = () => {
-  if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
+  if (!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
   const rec = getRecordFromForm("Draft");
   upsertRecord(rec);
   alert("Saved as Draft");
@@ -424,8 +454,9 @@ btnSaveDraft.onclick = () => {
 
 btnSubmit.onclick = () => {
   const err = validateForSubmit();
-  if(err) return alert(err);
-  if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
+  if (err) return alert(err);
+
+  if (!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
   const rec = getRecordFromForm("Submitted");
   upsertRecord(rec);
   alert("Submitted");
@@ -434,8 +465,8 @@ btnSubmit.onclick = () => {
 };
 
 btnDelete.onclick = () => {
-  if(!currentId) return alert("Nothing to delete.");
-  if(!confirm("Delete this record?")) return;
+  if (!currentId) return alert("Nothing to delete.");
+  if (!confirm("Delete this record?")) return;
   deleteRecord(currentId);
   currentId = null;
   renderList();
@@ -444,7 +475,7 @@ btnDelete.onclick = () => {
 
 btnExport.onclick = () => {
   const data = JSON.stringify(loadRecords(), null, 2);
-  const blob = new Blob([data], {type:"application/json"});
+  const blob = new Blob([data], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -454,7 +485,7 @@ btnExport.onclick = () => {
 };
 
 btnClearAll.onclick = () => {
-  if(!confirm("Delete ALL local records?")) return;
+  if (!confirm("Delete ALL local records?")) return;
   clearAllRecords();
   renderList();
 };
@@ -462,7 +493,7 @@ btnClearAll.onclick = () => {
 searchBox.addEventListener("input", renderList);
 statusFilter.addEventListener("change", renderList);
 
-// Signature pads init
+// Init signature pads
 initSignaturePad(sigCanvas1);
 initSignaturePad(sigCanvas2);
 initSignaturePad(sigCanvas3);
@@ -471,63 +502,6 @@ btnClearSig1.onclick = () => clearCanvas(sigCanvas1);
 btnClearSig2.onclick = () => clearCanvas(sigCanvas2);
 btnClearSig3.onclick = () => clearCanvas(sigCanvas3);
 
-// ---------- Sample Data (auto-seed when no records exist) ----------
-function seedSampleDataIfEmpty(){
-  const existing = loadRecords();
-  if (Array.isArray(existing) && existing.length) return;
-
-  const nowIso = new Date().toISOString();
-
-  const sampleRecords = [
-    {
-      id: "SAMPLE-1",
-      slNo: "138",
-      inventoryNo: "INV-20250206-1001",
-      inventoryDate: "2025-02-06",
-      agreementNo: "AG-784512",
-      financeName: "Tata Capital Finance Ltd",
-      customerName: "Ravi Kumar",
-      customerAddress: "Plot No 12, Hayathnagar, Hyderabad",
-      repoAgencyName: "Sri Sai Recovery Services",
-      seizedAt: "2025-02-05T14:30",
-      yardInAt: "2025-02-05T18:15",
-      vehicleType: "SUV",
-      vehicleNo: "TS09AB1234",
-      make: "Hyundai",
-      model: "Creta",
-      mfgYear: "2022",
-      engineNo: "ENG9823471HY",
-      chassisNo: "CHS98234HYD21",
-      odometerKm: "45231",
-      fuelPct: "35",
-      tyres: {
-        fl: { make: "Apollo", size: "195R15", no: "AP-77801", type: "Original" },
-        fr: { make: "Apollo", size: "195R15", no: "AP-77802", type: "Original" },
-        rl: { make: "Apollo", size: "195R15", no: "AP-77803", type: "Original" },
-        rr: { make: "Apollo", size: "195R15", no: "AP-77804", type: "Original" },
-        sp: { make: "Apollo", size: "195R15", no: "AP-77805", type: "Original" }
-      },
-      checklist: {},
-      condition: {
-        batteryMake: "Exide",
-        batteryNo: "EX-660012",
-        batteryCondition: "Weak",
-        engineStatus: "Starting Weak",
-        accident: "No",
-        towing: "Yes",
-        keys: { engineKey: true, doorKey: true, dslTankKey: true, otherKey: false, otherNote: "" }
-      },
-      photos: [],
-      signatures: { surrender: { name: "", image: "" }, yard: { name: "", image: "" }, godown: { name: "", image: "" } },
-      status: "Submitted",
-      updatedAt: nowIso
-    }
-  ];
-
-  saveRecords(sampleRecords);
-}
-
 // Boot
-seedSampleDataIfEmpty();
 renderList();
 show("dash");
