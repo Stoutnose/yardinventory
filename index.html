@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Surya Parking Yard - Vehicle Inventory</title>
 
+  <!-- UPDATED: path fixed (same-folder setup) -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -18,193 +19,78 @@
       </div>
 
       <div class="actions">
-        <button id="btnDashboard" class="ghost">Home</button>
-        <button id="btnNew" class="primary">➕ Add Vehicle</button>
-        <button id="btnNavSearch">🔍 Search</button>
-        <button id="btnNavFilter">🗂 Filter</button>
-        <button id="btnNavViewAll">📋 View All</button>
-        <button id="btnNavReports">📊 Reports</button>
-        <button id="btnPrint" class="ghost">🖨 Print</button>
+        <button id="btnDashboard">Dashboard</button>
+        <button id="btnNew" class="primary">+ New Inventory</button>
+        <button id="btnPrint" class="ghost">Print</button>
       </div>
     </div>
   </header>
 
   <main class="page">
 
-    <!-- Dashboard -->
+        <!-- Dashboard -->
     <section id="dashboardView" class="no-print">
-      <div class="dash-wrap">
-        <div class="dash-header">
-          <h2>Home / Dashboard</h2>
-          <div class="dash-sub">Quick actions + vehicle list</div>
-        </div>
-
-        <div class="dash-actions">
-          <button id="dashBtnAdd" class="dash-card primary">
-            <div class="dash-ico">➕</div>
-            <div class="dash-title">Add Vehicle</div>
-            <div class="dash-desc">Create a new inventory entry</div>
-          </button>
-
-          <button id="dashBtnSearch" class="dash-card">
-            <div class="dash-ico">🔍</div>
-            <div class="dash-title">Search</div>
-            <div class="dash-desc">Vehicle / Engine / Chassis / Customer</div>
-          </button>
-
-          <button id="dashBtnFilter" class="dash-card">
-            <div class="dash-ico">🗂</div>
-            <div class="dash-title">Filter</div>
-            <div class="dash-desc">Type, Key, Accident, Date range</div>
-          </button>
-
-          <button id="dashBtnViewAll" class="dash-card">
-            <div class="dash-ico">📋</div>
-            <div class="dash-title">View All</div>
-            <div class="dash-desc">All vehicles in a table</div>
-          </button>
-
-          <button id="dashBtnReports" class="dash-card">
-            <div class="dash-ico">📊</div>
-            <div class="dash-title">Reports</div>
-            <div class="dash-desc">Basic counters + export</div>
-          </button>
-
-          <button id="dashBtnPrint" class="dash-card">
-            <div class="dash-ico">🖨</div>
-            <div class="dash-title">Print</div>
-            <div class="dash-desc">Single vehicle or list</div>
-          </button>
-        </div>
-
-        <!-- Panels -->
-        <div class="panel mt10">
-          <div class="panel-head">
-            <div class="panel-title" id="dashPanelTitle">Recent Vehicles</div>
-            <div class="panel-tools">
-              <button id="btnExport" class="ghost">Export JSON</button>
-              <button id="btnClearAll" class="danger">Clear All</button>
-            </div>
+      <div class="dash-shell">
+        <div class="dash-head">
+          <div class="dash-title">
+            <h2>Dashboard</h2>
+            <div class="dash-sub">Quick view of records and vehicle counts.</div>
           </div>
 
-          <!-- HOME -->
-          <div id="dashHomePanel">
-            <div class="kpi-row" id="kpiRow"></div>
-            <div class="records" id="recentList"></div>
-          </div>
-
-          <!-- SEARCH -->
-          <div id="dashSearchPanel" class="hidden">
-            <div class="tool-row">
-              <input id="searchInput" class="search" placeholder="Search by Vehicle No / Engine No / Chassis No / Customer Name" />
-              <button id="btnDoSearch" class="primary">Search</button>
-              <button id="btnClearSearch" class="ghost">Clear</button>
-            </div>
-            <div class="table-wrap">
-              <table class="data-table" id="searchTable"></table>
-            </div>
-          </div>
-
-          <!-- FILTER -->
-          <div id="dashFilterPanel" class="hidden">
-            <div class="filter-grid">
-              <div class="filter-box">
-                <div class="filter-title">Vehicle Type</div>
-                <select id="filterType" class="select">
-                  <option value="">All Types</option>
-                  <option value="2W">Two Wheeler</option>
-                  <option value="3W">Three Wheeler</option>
-                  <option value="4W">Four Wheeler</option>
-                  <option value="SUV">SUV</option>
-                  <option value="Tractor">Tractor</option>
-                  <option value="HCV">HCV</option>
-                  <option value="LCV">LCV</option>
-                  <option value="Others">Others</option>
-                </select>
-              </div>
-
-              <div class="filter-box">
-                <div class="filter-title">Key Available</div>
-                <select id="filterKey" class="select">
-                  <option value="">All</option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-
-              <div class="filter-box">
-                <div class="filter-title">Accident</div>
-                <select id="filterAccident" class="select">
-                  <option value="">All</option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-
-              <div class="filter-box">
-                <div class="filter-title">Date Range (Yard In)</div>
-                <div class="date-row">
-                  <input id="filterFrom" class="search" type="date" />
-                  <input id="filterTo" class="search" type="date" />
-                </div>
-              </div>
-            </div>
-
-            <div class="tool-row">
-              <button id="btnApplyFilter" class="primary">Apply Filter</button>
-              <button id="btnResetFilter" class="ghost">Reset Filter</button>
-            </div>
-
-            <div class="table-wrap">
-              <table class="data-table" id="filterTable"></table>
-            </div>
-          </div>
-
-          <!-- VIEW ALL -->
-          <div id="dashViewAllPanel" class="hidden">
-            <div class="meta" id="viewAllMeta"></div>
-            <div class="table-wrap">
-              <table class="data-table" id="viewAllTable"></table>
-            </div>
-          </div>
-
-          <!-- REPORTS -->
-          <div id="dashReportsPanel" class="hidden">
-            <div class="kpi-row" id="reportKpis"></div>
-            <div class="tool-row">
-              <button id="btnDownloadExcel" class="primary">Download Excel (CSV)</button>
-            </div>
-          </div>
-
-          <!-- PRINT -->
-          <div id="dashPrintPanel" class="hidden">
-            <div class="print-grid">
-              <div class="print-box">
-                <div class="filter-title">Print Single Vehicle Inventory</div>
-                <select id="printSelect" class="select"></select>
-                <div class="tool-row">
-                  <button id="btnPrintSingle" class="primary">Print Selected</button>
-                </div>
-                <div class="meta">Tip: You can also click “Print” inside any vehicle form to save as PDF.</div>
-              </div>
-
-              <div class="print-box">
-                <div class="filter-title">Print Filtered List</div>
-                <div class="meta">This prints the current Search/Filter results. If nothing selected, it prints all.</div>
-                <div class="tool-row">
-                  <button id="btnPrintList" class="primary">Print List</button>
-                  <button id="btnDownloadPdfHint" class="ghost">Download PDF</button>
-                </div>
-              </div>
-            </div>
-
-            <div id="printListArea" class="print-area hidden"></div>
+          <div class="dash-head-actions">
+            <button id="btnExport" class="ghost">Export JSON</button>
+            <button id="btnClearAll" class="danger">Clear All</button>
           </div>
         </div>
+
+        <!-- Analytics -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Vehicles</div>
+            <div id="statTotal" class="stat-value">0</div>
+            <div class="stat-foot" id="resultsMeta">Showing 0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">2W</div>
+            <div id="stat2W" class="stat-value">0</div>
+            <div class="stat-foot">Two wheelers</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">SUV</div>
+            <div id="statSUV" class="stat-value">0</div>
+            <div class="stat-foot">Sports utility</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">LCV</div>
+            <div id="statLCV" class="stat-value">0</div>
+            <div class="stat-foot">Light commercial</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="dash-toolbar">
+          <div class="toolbar-left">
+            <div class="field">
+              <span class="field-label">Search</span>
+              <input id="searchBox" class="search" placeholder="Search by Inventory No / Vehicle / Customer..." />
+            </div>
+            <div class="field">
+              <span class="field-label">Status</span>
+              <select id="statusFilter" class="select">
+                <option value="ALL">All</option>
+                <option value="Draft">Draft</option>
+                <option value="Submitted">Submitted</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Record cards -->
+        <div id="recordsList" class="records cards"></div>
       </div>
     </section>
 
-    <!-- FORM VIEW (PDF-like) -->
+<!-- FORM VIEW (PDF-like) -->
     <section id="formView" class="hidden">
 
       <div class="paper">
@@ -236,6 +122,12 @@
           </div>
 
           <div class="paper-title">INVENTORY OF ITEM IN VEHICLE</div>
+        </div>
+
+        <!-- Lock banner (shown when record is Submitted) -->
+        <div id="lockBanner" class="lock-banner hidden no-print">
+          <div class="lock-title">This record is locked</div>
+          <div class="lock-sub">Status is <b>Submitted</b>. You can view/print, but editing is disabled.</div>
         </div>
 
         <!-- Main form table -->
@@ -577,17 +469,19 @@
             <input id="inventoryNo" class="line-input sm" disabled />
           </div>
           <div class="right">
-            <button id="btnSaveDraft">Save Draft</button>
+            <button id="btnSaveDraft" class="primary">Save Draft</button>
             <button id="btnSubmit" class="primary">Submit</button>
-            <button id="btnCancel" class="ghost">Cancel</button>
             <button id="btnDelete" class="danger">Delete</button>
+            <button id="btnCancel" class="ghost">Back</button>
           </div>
         </div>
 
-      </div>
+      </div><!-- /paper -->
     </section>
+
   </main>
 
+  <!-- Scripts -->
   <script src="storage.js"></script>
   <script src="app.js"></script>
 </body>
