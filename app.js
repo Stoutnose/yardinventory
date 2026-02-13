@@ -1,11 +1,16 @@
-// ============================
-// SAFE INVENTORY SYSTEM
-// ============================
+// =======================================================
+// SURYA PARKING YARD – FULL PROFESSIONAL INVENTORY SYSTEM
+// =======================================================
 
-const STORAGE_KEY = "surya_inventory_safe";
+const STORAGE_KEY = "surya_parking_inventory_v4";
 
+// ===================== STORAGE =====================
 function loadRecords(){
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
 
 function saveRecords(records){
@@ -15,13 +20,8 @@ function saveRecords(records){
 function upsertRecord(record){
   const records = loadRecords();
   const index = records.findIndex(r => r.id === record.id);
-
-  if(index >= 0){
-    records[index] = record;
-  } else {
-    records.unshift(record);
-  }
-
+  if(index >= 0) records[index] = record;
+  else records.unshift(record);
   saveRecords(records);
 }
 
@@ -30,74 +30,116 @@ function deleteRecord(id){
   saveRecords(records);
 }
 
-// ---------- HELPERS ----------
-function $(id){ return document.getElementById(id); }
-function safeClick(id, fn){
-  const el = $(id);
-  if(el) el.onclick = fn;
+function clearAllRecords(){
+  localStorage.removeItem(STORAGE_KEY);
 }
 
-function generateInv(){
-  const d = new Date();
-  return "INV-" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate() + "-" + Math.floor(Math.random()*1000);
-}
+// ===================== HELPERS =====================
+function byId(id){ return document.getElementById(id); }
+function getVal(id){ return byId(id)?.value ?? ""; }
+function setVal(id,v){ const el = byId(id); if(el) el.value = v ?? ""; }
+function getChecked(id){ return byId(id)?.checked ?? false; }
+function setChecked(id,v){ const el = byId(id); if(el) el.checked = !!v; }
 
-// ---------- VIEW SWITCH ----------
+// ===================== VIEW SWITCH =====================
 function show(view){
-  if($("dashboardView")) $("dashboardView").classList.toggle("hidden", view !== "dash");
-  if($("formView")) $("formView").classList.toggle("hidden", view !== "form");
+  const dash = byId("dashboardView");
+  const form = byId("formView");
+  if(dash) dash.classList.toggle("hidden", view !== "dash");
+  if(form) form.classList.toggle("hidden", view !== "form");
 }
 
-// ---------- FORM ----------
-let currentId = null;
+// ===================== INVENTORY NO =====================
+function pad2(n){ return String(n).padStart(2,"0"); }
+function newInventoryNo(){
+  const d = new Date();
+  return `INV-${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${Math.floor(Math.random()*9000+1000)}`;
+}
 
-function getFormData(status){
+// ===================== GLOBAL STATE =====================
+let currentId = null;
+let currentPhotos = [];
+
+// ===================== RECORD MAP =====================
+function getRecordFromForm(status){
   return {
     id: currentId || crypto.randomUUID(),
-    inventoryNo: $("inventoryNo")?.value || generateInv(),
-    vehicleNo: $("vehicleNo")?.value || "",
-    customerName: $("customerName")?.value || "",
-    vehicleType: $("vehicleType")?.value || "",
-    financeName: $("financeName")?.value || "",
-    yardInAt: $("yardInAt")?.value || "",
-    status: status,
+    inventoryNo: getVal("inventoryNo") || newInventoryNo(),
+    vehicleNo: getVal("vehicleNo"),
+    customerName: getVal("customerName"),
+    financeName: getVal("financeName"),
+    vehicleType: getVal("vehicleType"),
+    agreementNo: getVal("agreementNo"),
+    status,
     updatedAt: new Date().toISOString()
   };
 }
 
 function fillForm(r){
-  currentId = r.id;
-  if($("inventoryNo")) $("inventoryNo").value = r.inventoryNo;
-  if($("vehicleNo")) $("vehicleNo").value = r.vehicleNo;
-  if($("customerName")) $("customerName").value = r.customerName;
-  if($("vehicleType")) $("vehicleType").value = r.vehicleType;
-  if($("financeName")) $("financeName").value = r.financeName;
-  if($("yardInAt")) $("yardInAt").value = r.yardInAt;
+  currentId = r.id || null;
+
+  setVal("inventoryNo", r.inventoryNo);
+  setVal("vehicleNo", r.vehicleNo);
+  setVal("customerName", r.customerName);
+  setVal("financeName", r.financeName);
+  setVal("vehicleType", r.vehicleType);
+  setVal("agreementNo", r.agreementNo);
 }
 
-// ---------- DASHBOARD ----------
-function renderDashboard(){
-  const records = loadRecords();
+// ===================== DASHBOARD LIST =====================
+function renderList(){
 
-  const recent = $("recentList");
-  if(!recent) return;
+  const searchBox = byId("searchBox");
+  const statusFilter = byId("statusFilter");
+  const recordsList = byId("recordsList");
 
-  recent.innerHTML = "";
+  if(!recordsList) return;
 
-  if(records.length === 0){
-    recent.innerHTML = "<div style='padding:15px;'>No Records Yet</div>";
+  const q = (searchBox?.value || "").toLowerCase();
+  const status = statusFilter?.value || "ALL";
+
+  const records = loadRecords().filter(r => {
+
+    if(status !== "ALL" && r.status !== status) return false;
+
+    if(!q) return true;
+
+    const hay = [
+      r.inventoryNo,
+      r.vehicleNo,
+      r.customerName,
+      r.financeName,
+      r.agreementNo
+    ].join(" ").toLowerCase();
+
+    return hay.includes(q);
+  });
+
+  recordsList.innerHTML = "";
+
+  if(!records.length){
+    recordsList.innerHTML = `<div class="meta">No records found.</div>`;
     return;
   }
 
-  records.slice(0,5).forEach(r=>{
+  records.forEach(r => {
+
     const div = document.createElement("div");
-    div.className="record";
+    div.className = "record";
+
+    const pillClass = r.status === "Submitted" ? "sub" : "draft";
+
     div.innerHTML = `
-      <div>
-        <strong>${r.vehicleNo}</strong>
-        <div>${r.customerName} • ${r.financeName}</div>
+      <div class="left">
+        <strong>${r.inventoryNo}</strong>
+        <div class="meta">
+          ${r.vehicleNo} • ${r.vehicleType} • ${r.customerName}
+        </div>
       </div>
-      <button data-id="${r.id}">Open</button>
+      <div class="right">
+        <span class="pill ${pillClass}">${r.status}</span>
+        <button class="primary">Open</button>
+      </div>
     `;
 
     div.querySelector("button").onclick = ()=>{
@@ -105,43 +147,145 @@ function renderDashboard(){
       show("form");
     };
 
-    recent.appendChild(div);
+    recordsList.appendChild(div);
   });
 }
 
-// ---------- EVENTS ----------
-safeClick("btnNew", ()=>{
-  currentId = null;
-  if($("inventoryNo")) $("inventoryNo").value = generateInv();
-  show("form");
-});
+// ===================== VALIDATION =====================
+function validateForSubmit(){
+  if(!getVal("vehicleNo")) return "Vehicle No is required.";
+  if(!getVal("customerName")) return "Customer Name is required.";
+  return null;
+}
 
-safeClick("btnSaveDraft", ()=>{
-  const record = getFormData("Draft");
-  upsertRecord(record);
+// ===================== EVENTS =====================
+document.addEventListener("DOMContentLoaded", ()=>{
+
+  const btnNew = byId("btnNew");
+  const btnDashboard = byId("btnDashboard");
+  const btnCancel = byId("btnCancel");
+  const btnSaveDraft = byId("btnSaveDraft");
+  const btnSubmit = byId("btnSubmit");
+  const btnDelete = byId("btnDelete");
+  const btnExport = byId("btnExport");
+  const btnClearAll = byId("btnClearAll");
+  const searchBox = byId("searchBox");
+  const statusFilter = byId("statusFilter");
+
+  if(btnNew){
+    btnNew.onclick = ()=>{
+      currentId = null;
+      setVal("inventoryNo", newInventoryNo());
+      show("form");
+    };
+  }
+
+  if(btnDashboard){
+    btnDashboard.onclick = ()=>{
+      renderList();
+      show("dash");
+    };
+  }
+
+  if(btnCancel){
+    btnCancel.onclick = ()=>{
+      renderList();
+      show("dash");
+    };
+  }
+
+  if(btnSaveDraft){
+    btnSaveDraft.onclick = ()=>{
+      const rec = getRecordFromForm("Draft");
+      upsertRecord(rec);
+      renderList();
+      show("dash");
+    };
+  }
+
+  if(btnSubmit){
+    btnSubmit.onclick = ()=>{
+      const err = validateForSubmit();
+      if(err) return alert(err);
+
+      const rec = getRecordFromForm("Submitted");
+      upsertRecord(rec);
+      renderList();
+      show("dash");
+    };
+  }
+
+  if(btnDelete){
+    btnDelete.onclick = ()=>{
+      if(!currentId) return alert("Nothing to delete.");
+      if(!confirm("Delete this record?")) return;
+      deleteRecord(currentId);
+      currentId = null;
+      renderList();
+      show("dash");
+    };
+  }
+
+  if(btnExport){
+    btnExport.onclick = ()=>{
+      const blob = new Blob(
+        [JSON.stringify(loadRecords(), null, 2)],
+        {type:"application/json"}
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "surya-inventory.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+  }
+
+  if(btnClearAll){
+    btnClearAll.onclick = ()=>{
+      if(!confirm("Delete ALL local records?")) return;
+      clearAllRecords();
+      renderList();
+    };
+  }
+
+  if(searchBox) searchBox.addEventListener("input", renderList);
+  if(statusFilter) statusFilter.addEventListener("change", renderList);
+
+  seedSampleDataIfEmpty();
+  renderList();
   show("dash");
-  renderDashboard();
 });
 
-safeClick("btnSubmit", ()=>{
-  const record = getFormData("Submitted");
-  upsertRecord(record);
-  show("dash");
-  renderDashboard();
-});
+// ===================== SAMPLE DATA =====================
+function seedSampleDataIfEmpty(){
 
-safeClick("btnDelete", ()=>{
-  if(!currentId) return;
-  deleteRecord(currentId);
-  show("dash");
-  renderDashboard();
-});
+  if(loadRecords().length) return;
 
-safeClick("btnDashboard", ()=>{
-  show("dash");
-  renderDashboard();
-});
+  const now = new Date().toISOString();
 
-// ---------- INIT ----------
-show("dash");
-renderDashboard();
+  saveRecords([
+    {
+      id:"1",
+      inventoryNo:"INV-20250206-1001",
+      vehicleNo:"TS09AB1234",
+      vehicleType:"SUV",
+      customerName:"Ravi Kumar",
+      financeName:"Tata Capital Finance Ltd",
+      agreementNo:"AG-784512",
+      status:"Submitted",
+      updatedAt:now
+    },
+    {
+      id:"2",
+      inventoryNo:"INV-20250206-1002",
+      vehicleNo:"TS10XY5678",
+      vehicleType:"2W",
+      customerName:"Mahesh Reddy",
+      financeName:"Bajaj Finserv",
+      agreementNo:"AG-998211",
+      status:"Draft",
+      updatedAt:now
+    }
+  ]);
+}
