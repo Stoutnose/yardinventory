@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Surya Parking Yard - Vehicle Inventory</title>
+
+  <!-- UPDATED: path fixed (same-folder setup) -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Simple Top Bar (not printed) -->
+  <header class="topbar no-print">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-title">Surya Parking Yard - Inventory</div>
+        <div class="brand-sub">PDF-style form UI (Demo)</div>
+      </div>
+
+      <div class="actions">
+        <button id="btnDashboard">Dashboard</button>
+        <button id="btnNew" class="primary">+ New Inventory</button>
+        <button id="btnPrint" class="ghost">Print</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- Dashboard -->
+    <section id="dashboardView" class="no-print">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Records</h2>
+          <div class="panel-tools">
+            <input id="searchBox" class="search" placeholder="Search by Inventory No / Vehicle No / Customer..." />
+            <select id="statusFilter" class="select">
+              <option value="ALL">All</option>
+              <option value="Draft">Draft</option>
+              <option value="Submitted">Submitted</option>
+            </select>
+            <button id="btnExport">Export JSON</button>
+            <button id="btnClearAll" class="danger">Clear All</button>
+          </div>
+        </div>
+
+        <div id="recordsList" class="records"></div>
+      </div>
+    </section>
+
+    <!-- FORM VIEW (PDF-like) -->
+    <section id="formView" class="hidden">
+
+      <div class="paper">
+        <!-- Header like the PDF -->
+        <div class="paper-header">
+          <div class="paper-header-row">
+            <div class="paper-logo">
+              <div class="logo-box">SP</div>
+              <div class="logo-text">
+                <div class="yard-name">SURYA PARKING YARD</div>
+                <div class="yard-sub">
+                  Survey No. 18, 19A, 7-1-78/C/101, Ward & Deed School Back Side,<br/>
+                  Hayath Nagar, Pedda Amberpet, Ranga Reddy Dist.
+                </div>
+                <div class="yard-sub"><b>Cell :</b> 9603003131</div>
+              </div>
+            </div>
+
+            <div class="top-right">
+              <div class="sr-row">
+                <span class="label">Sl. No.</span>
+                <input id="slNo" class="line-input sm" placeholder="e.g., 138" />
+              </div>
+              <div class="sr-row">
+                <span class="label">Date</span>
+                <input id="inventoryDate" class="line-input sm" type="date" />
+              </div>
+            </div>
+          </div>
+
+          <div class="paper-title">INVENTORY OF ITEM IN VEHICLE</div>
+        </div>
+
+        <!-- Main form table -->
+        <table class="form-table">
+          <tr>
+            <td class="w25">Agreement No.</td>
+            <td class="w25"><input id="agreementNo" class="line-input" /></td>
+            <td class="w25">Finance Name</td>
+            <td class="w25"><input id="financeName" class="line-input" /></td>
+          </tr>
+          <tr>
+            <td>Customer Name</td>
+            <td><input id="customerName" class="line-input" /></td>
+            <td>Address</td>
+            <td><input id="customerAddress" class="line-input" /></td>
+          </tr>
+          <tr>
+            <td>Repo Agency Name</td>
+            <td><input id="repoAgencyName" class="line-input" /></td>
+            <td>Vehicle seized at (Date/Time)</td>
+            <td>
+              <input id="seizedAt" class="line-input" type="datetime-local" />
+            </td>
+          </tr>
+          <tr>
+            <td>Yard in (Date/Time)</td>
+            <td><input id="yardInAt" class="line-input" type="datetime-local" /></td>
+            <td>Vehicle Type</td>
+            <td>
+              <select id="vehicleType" class="line-input">
+                <option>2W</option><option>3W</option><option>Pass</option><option>SUV</option>
+                <option>T.T</option><option>Tractor</option><option>HCV</option><option>LCV</option><option>Others</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Vehicle No.</td>
+            <td><input id="vehicleNo" class="line-input" /></td>
+            <td>Make / Model / Mfg Year</td>
+            <td class="triple">
+              <input id="make" class="line-input" placeholder="Make" />
+              <input id="model" class="line-input" placeholder="Model" />
+              <input id="mfgYear" class="line-input" type="number" min="1950" max="2100" placeholder="Year" />
+            </td>
+          </tr>
+          <tr>
+            <td>Engine No.</td>
+            <td><input id="engineNo" class="line-input" /></td>
+            <td>Chassis No.</td>
+            <td><input id="chassisNo" class="line-input" /></td>
+          </tr>
+        </table>
+
+        <!-- Documents + Tyres -->
+        <div class="two-col">
+          <div class="box">
+            <div class="box-title">Documents Received</div>
+            <table class="mini-table">
+              <tr>
+                <td class="w40">RC</td>
+                <td class="w20 center"><input id="docRC" type="checkbox" /></td>
+                <td class="w40"><input id="docRCNote" class="line-input" placeholder="Notes" /></td>
+              </tr>
+              <tr>
+                <td>Tax</td>
+                <td class="center"><input id="docTax" type="checkbox" /></td>
+                <td><input id="docTaxNote" class="line-input" placeholder="Notes" /></td>
+              </tr>
+              <tr>
+                <td>Permit</td>
+                <td class="center"><input id="docPermit" type="checkbox" /></td>
+                <td><input id="docPermitNote" class="line-input" placeholder="Notes" /></td>
+              </tr>
+              <tr>
+                <td>Insurance</td>
+                <td class="center"><input id="docInsurance" type="checkbox" /></td>
+                <td><input id="docInsuranceNote" class="line-input" placeholder="Notes" /></td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="box">
+            <div class="box-title">Vehicle load details / Odometer / Fuel</div>
+            <table class="mini-table">
+              <tr>
+                <td class="w40">Odometer (KM)</td>
+                <td><input id="odometerKm" class="line-input" type="number" min="0" /></td>
+              </tr>
+              <tr>
+                <td>Fuel in Tank (Level %)</td>
+                <td><input id="fuelPct" class="line-input" type="number" min="0" max="100" /></td>
+              </tr>
+              <tr>
+                <td>Notes</td>
+                <td><input id="notes" class="line-input" placeholder="Optional notes" /></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="box mt8">
+          <div class="box-title">Tyres (Side / Make / Size / No. / Original or Retread)</div>
+          <table class="tyre-table">
+            <thead>
+              <tr>
+                <th class="w20">Position</th>
+                <th class="w20">Tyre Make</th>
+                <th class="w20">Size</th>
+                <th class="w20">Tyre No</th>
+                <th class="w20">Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Front - Left</td>
+                <td><input id="tyreFLMake" class="cell-input" /></td>
+                <td><input id="tyreFLSize" class="cell-input" /></td>
+                <td><input id="tyreFLNo" class="cell-input" /></td>
+                <td>
+                  <select id="tyreFLType" class="cell-input">
+                    <option>Original</option><option>Retread</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td>Front - Right</td>
+                <td><input id="tyreFRMake" class="cell-input" /></td>
+                <td><input id="tyreFRSize" class="cell-input" /></td>
+                <td><input id="tyreFRNo" class="cell-input" /></td>
+                <td>
+                  <select id="tyreFRType" class="cell-input">
+                    <option>Original</option><option>Retread</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td>Rear - Left</td>
+                <td><input id="tyreRLMake" class="cell-input" /></td>
+                <td><input id="tyreRLSize" class="cell-input" /></td>
+                <td><input id="tyreRLNo" class="cell-input" /></td>
+                <td>
+                  <select id="tyreRLType" class="cell-input">
+                    <option>Original</option><option>Retread</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td>Rear - Right</td>
+                <td><input id="tyreRRMake" class="cell-input" /></td>
+                <td><input id="tyreRRSize" class="cell-input" /></td>
+                <td><input id="tyreRRNo" class="cell-input" /></td>
+                <td>
+                  <select id="tyreRRType" class="cell-input">
+                    <option>Original</option><option>Retread</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td>Stepney</td>
+                <td><input id="tyreSPMake" class="cell-input" /></td>
+                <td><input id="tyreSPSize" class="cell-input" /></td>
+                <td><input id="tyreSPNo" class="cell-input" /></td>
+                <td>
+                  <select id="tyreSPType" class="cell-input">
+                    <option>Original</option><option>Retread</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Checklist -->
+        <div class="box mt8">
+          <div class="box-title">Check List</div>
+          <div class="checklist-grid">
+            <div class="chk-col">
+              <div class="chk-item"><label><input type="checkbox" id="chkFenders"> Fenders</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkHeadLights"> Head lights</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkParkLights"> Park lights</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkHorn"> Horn</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkSideLights"> Side lights</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkFrontBumper"> Front bumper</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkRadiatorCap"> Radiator & Cap</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkWindshield"> Wind screen glass</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkWiper"> Wipper assembly</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkTankCap"> Tank cap</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkRearBumper"> Rr. bumper</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkRearLights"> Rear light</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkTrapalin"> Trapalin</label></div>
+            </div>
+
+            <div class="chk-col">
+              <div class="chk-item"><label><input type="checkbox" id="chkDoorHandles"> Door handles</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkDoorGlass"> Door glasses</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkInstrumentPanel"> Instrument panel</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkSpeedometer"> Speedometer</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkRearViewMirror"> Rear view mirror</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkCeilingLights"> Ceiling lights</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkRubberMats"> Rubber mats</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkMudguard"> Mudgard chain</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkMudLamp"> Mud lamp</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkSunVisor"> Sun visor</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkStepneyWheel"> Stephney wheel</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkTVLCD"> TV/LCD</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkCDDVD"> CD/DVD Player</label></div>
+            </div>
+
+            <div class="chk-col">
+              <div class="chk-item"><label><input type="checkbox" id="chkAmplifier"> Amplifier</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkSelfStarter"> Self starter</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkAlternator"> Alternator</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkWheelSpanner"> Wheel spanner</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkAntenna"> Antenna</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkAC"> Air condition</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkCentralLock"> Central locking system</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkBadges"> Badges</label></div>
+              <div class="chk-item"><label><input type="checkbox" id="chkLuggageCarrier"> Luggage carrier</label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Battery / Condition / Keys -->
+        <div class="two-col mt8">
+          <div class="box">
+            <div class="box-title">Battery / Engine / Flags</div>
+            <table class="mini-table">
+              <tr>
+                <td class="w40">Battery Make</td>
+                <td><input id="batteryMake" class="line-input" /></td>
+              </tr>
+              <tr>
+                <td>Battery No.</td>
+                <td><input id="batteryNo" class="line-input" /></td>
+              </tr>
+              <tr>
+                <td>Battery Condition</td>
+                <td>
+                  <select id="batteryCondition" class="line-input">
+                    <option value="">Select</option>
+                    <option>Good</option>
+                    <option>Weak</option>
+                    <option>Bad</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td>Engine Status</td>
+                <td>
+                  <select id="engineStatus" class="line-input">
+                    <option value="">Select</option>
+                    <option>Running</option>
+                    <option>Starting Weak</option>
+                    <option>Bad</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td>Accident</td>
+                <td>
+                  <select id="accidentFlag" class="line-input">
+                    <option>No</option><option>Yes</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td>Towing</td>
+                <td>
+                  <select id="towingFlag" class="line-input">
+                    <option>No</option><option>Yes</option>
+                  </select>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="box">
+            <div class="box-title">Keys / Extra</div>
+            <div class="key-grid">
+              <label><input type="checkbox" id="keyEngine"> Engine Key</label>
+              <label><input type="checkbox" id="keyDoor"> Door Key</label>
+              <label><input type="checkbox" id="keyDslTank"> DSL Tank Key</label>
+              <label><input type="checkbox" id="keyOther"> Other Key</label>
+              <input id="keyOtherNote" class="line-input" placeholder="Other key notes" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Photos -->
+        <div class="box mt8 no-print">
+          <div class="box-title">Photos (Demo)</div>
+          <div class="photo-controls">
+            <select id="photoType" class="line-input">
+              <option value="Front">Front</option>
+              <option value="Rear">Rear</option>
+              <option value="Left">Left</option>
+              <option value="Right">Right</option>
+              <option value="Odometer">Odometer</option>
+              <option value="EnginePlate">Engine Plate</option>
+              <option value="ChassisPlate">Chassis Plate</option>
+              <option value="Damage">Damage</option>
+              <option value="Other">Other</option>
+            </select>
+            <input id="photoFile" type="file" accept="image/*" />
+            <button id="btnAddPhoto">Add Photo</button>
+          </div>
+          <div id="photoGrid" class="photo-grid"></div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="sig-row mt10">
+          <div class="sig-block">
+            <div class="sig-label">Signature of the Person<br/>Surrendering the Vehicle</div>
+            <input id="sigName1" class="line-input" placeholder="Name" />
+            <canvas id="sigCanvas1" class="sig-canvas" width="900" height="220"></canvas>
+            <button id="btnClearSig1" class="ghost no-print">Clear</button>
+          </div>
+
+          <div class="sig-block">
+            <div class="sig-label">Signature of the Yard Keeper</div>
+            <input id="sigName2" class="line-input" placeholder="Name" />
+            <canvas id="sigCanvas2" class="sig-canvas" width="900" height="220"></canvas>
+            <button id="btnClearSig2" class="ghost no-print">Clear</button>
+          </div>
+
+          <div class="sig-block">
+            <div class="sig-label">Signature of the Godown Incharge</div>
+            <input id="sigName3" class="line-input" placeholder="Name" />
+            <canvas id="sigCanvas3" class="sig-canvas" width="900" height="220"></canvas>
+            <button id="btnClearSig3" class="ghost no-print">Clear</button>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-row no-print">
+          <div class="left">
+            <span id="statusBadge" class="status">Draft</span>
+            <span class="muted small">Inventory No: </span>
+            <input id="inventoryNo" class="line-input sm" disabled />
+          </div>
+          <div class="right">
+            <button id="btnSaveDraft">Save Draft</button>
+            <button id="btnSubmit" class="primary">Submit</button>
+            <button id="btnCancel" class="ghost">Cancel</button>
+            <button id="btnDelete" class="danger">Delete</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- UPDATED: paths fixed (same-folder setup) -->
+  <script src="storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

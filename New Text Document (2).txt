@@ -1,0 +1,119 @@
+const dashboardView = document.getElementById("dashboardView");
+const formView = document.getElementById("formView");
+const recordsList = document.getElementById("recordsList");
+
+const btnDashboard = document.getElementById("btnDashboard");
+const btnNew = document.getElementById("btnNew");
+const btnSaveDraft = document.getElementById("btnSaveDraft");
+const btnSubmit = document.getElementById("btnSubmit");
+const btnCancel = document.getElementById("btnCancel");
+
+let currentId = null;
+
+function show(view) {
+  dashboardView.classList.toggle("hidden", view !== "dash");
+  formView.classList.toggle("hidden", view !== "form");
+}
+
+function newInventoryNo() {
+  const d = new Date();
+  return `INV-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}-${Math.floor(Math.random()*9000+1000)}`;
+}
+
+function getFormData(status) {
+  return {
+    id: currentId || crypto.randomUUID(),
+    inventoryNo: document.getElementById("inventoryNo").value,
+    inventoryDate: document.getElementById("inventoryDate").value,
+    agreementNo: document.getElementById("agreementNo").value,
+    financeName: document.getElementById("financeName").value,
+    customerName: document.getElementById("customerName").value,
+    customerAddress: document.getElementById("customerAddress").value,
+    repoAgencyName: document.getElementById("repoAgencyName").value,
+    seizedAt: document.getElementById("seizedAt").value,
+    yardInAt: document.getElementById("yardInAt").value,
+    vehicleType: document.getElementById("vehicleType").value,
+    vehicleNo: document.getElementById("vehicleNo").value,
+    make: document.getElementById("make").value,
+    model: document.getElementById("model").value,
+    mfgYear: document.getElementById("mfgYear").value,
+    engineNo: document.getElementById("engineNo").value,
+    chassisNo: document.getElementById("chassisNo").value,
+    odometerKm: document.getElementById("odometerKm").value,
+    fuelPct: document.getElementById("fuelPct").value,
+    status,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function fillForm(r) {
+  currentId = r.id;
+  document.getElementById("inventoryNo").value = r.inventoryNo || newInventoryNo();
+  document.getElementById("inventoryDate").value = r.inventoryDate || "";
+  document.getElementById("agreementNo").value = r.agreementNo || "";
+  document.getElementById("financeName").value = r.financeName || "";
+  document.getElementById("customerName").value = r.customerName || "";
+  document.getElementById("customerAddress").value = r.customerAddress || "";
+  document.getElementById("repoAgencyName").value = r.repoAgencyName || "";
+  document.getElementById("seizedAt").value = r.seizedAt || "";
+  document.getElementById("yardInAt").value = r.yardInAt || "";
+  document.getElementById("vehicleType").value = r.vehicleType || "2W";
+  document.getElementById("vehicleNo").value = r.vehicleNo || "";
+  document.getElementById("make").value = r.make || "";
+  document.getElementById("model").value = r.model || "";
+  document.getElementById("mfgYear").value = r.mfgYear || "";
+  document.getElementById("engineNo").value = r.engineNo || "";
+  document.getElementById("chassisNo").value = r.chassisNo || "";
+  document.getElementById("odometerKm").value = r.odometerKm || "";
+  document.getElementById("fuelPct").value = r.fuelPct || "";
+}
+
+function renderList() {
+  const records = loadRecords();
+  recordsList.innerHTML = records.length ? "" : "<p class='muted'>No records yet.</p>";
+
+  records.forEach(r => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <div>
+        <strong>${r.inventoryNo}</strong><br/>
+        <span class="muted">${r.vehicleNo || "(no vehicle no)"} • ${r.status}</span>
+      </div>
+      <div>
+        <button data-id="${r.id}">Open</button>
+      </div>
+    `;
+    div.querySelector("button").onclick = () => {
+      fillForm(r);
+      show("form");
+    };
+    recordsList.appendChild(div);
+  });
+}
+
+btnNew.onclick = () => {
+  currentId = null;
+  fillForm({ inventoryNo: newInventoryNo() });
+  show("form");
+};
+
+btnDashboard.onclick = () => { renderList(); show("dash"); };
+btnCancel.onclick = () => { renderList(); show("dash"); };
+
+btnSaveDraft.onclick = () => {
+  const rec = getFormData("Draft");
+  upsertRecord(rec);
+  alert("Saved as Draft");
+  renderList(); show("dash");
+};
+
+btnSubmit.onclick = () => {
+  const rec = getFormData("Submitted");
+  upsertRecord(rec);
+  alert("Submitted (Locked in real system)");
+  renderList(); show("dash");
+};
+
+renderList();
+show("dash");
