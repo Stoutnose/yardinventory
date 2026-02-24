@@ -14,16 +14,6 @@ const statusFilter = document.getElementById("statusFilter");
 const btnExport = document.getElementById("btnExport");
 const btnClearAll = document.getElementById("btnClearAll");
 
-// Analytics (dashboard)
-const statTotal = document.getElementById("statTotal");
-const stat2W = document.getElementById("stat2W");
-const statSUV = document.getElementById("statSUV");
-const statLCV = document.getElementById("statLCV");
-const resultsMeta = document.getElementById("resultsMeta");
-
-// Lock banner (form)
-const lockBanner = document.getElementById("lockBanner");
-
 // Form buttons
 const btnSaveDraft = document.getElementById("btnSaveDraft");
 const btnSubmit = document.getElementById("btnSubmit");
@@ -34,10 +24,18 @@ const btnDelete = document.getElementById("btnDelete");
 const statusBadge = document.getElementById("statusBadge");
 const inventoryNo = document.getElementById("inventoryNo");
 
-// Photos (screen only)
+// Branch UI
+const branchSelect = document.getElementById("branchSelect");
+const brandTitle = document.getElementById("brandTitle");
+const brandSub = document.getElementById("brandSub");
+const slotNoteEl = document.getElementById("slotNote");
+const formBranch = document.getElementById("formBranch");
+
+// Photos
 const photoType = document.getElementById("photoType");
-const photoFile = document.getElementById("photoFile");
-const btnAddPhoto = document.getElementById("btnAddPhoto");
+const photoFiles = document.getElementById("photoFiles");
+const btnAddPhotos = document.getElementById("btnAddPhotos");
+const btnClearPhotos = document.getElementById("btnClearPhotos");
 const photoGrid = document.getElementById("photoGrid");
 
 // Signatures
@@ -51,75 +49,99 @@ const btnClearSig1 = document.getElementById("btnClearSig1");
 const btnClearSig2 = document.getElementById("btnClearSig2");
 const btnClearSig3 = document.getElementById("btnClearSig3");
 
-// Safe helpers
+// Helpers
 function byId(id){ return document.getElementById(id); }
 function getVal(id){ return byId(id)?.value ?? ""; }
 function setVal(id, v){ const el = byId(id); if(el) el.value = v ?? ""; }
 function getChecked(id){ const el = byId(id); return el ? !!el.checked : false; }
 function setChecked(id, v){ const el = byId(id); if(el) el.checked = !!v; }
+function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+  }[ch]));
+}
 
+// -------------------- Branch config (EDIT YOUR 3 BRANCHES HERE) --------------------
+const BRANCHES = [
+  { id:"HN", name:"Hayath Nagar (Main)", occupiedRanges:[[1,3],[11,15],[30,35],[50,61]] },
+  { id:"KP", name:"Kukatpally",         occupiedRanges:[[2,4],[12,14],[33,36],[55,60]] },
+  { id:"GB", name:"Gachibowli",         occupiedRanges:[[1,2],[11,13],[31,34],[52,58]] },
+];
+
+function getBranchConfig(id){
+  const bid = id || getBranchId();
+  return BRANCHES.find(b => b.id === bid) || BRANCHES[0];
+}
+function formatRanges(ranges){
+  return (ranges || []).map(([a,b]) => (a===b ? String(a) : `${a}–${b}`)).join(", ");
+}
+
+function applyBranchUI(){
+  const b = getBranchConfig();
+  if(brandTitle) brandTitle.textContent = `Surya Parking Yard - Inventory • ${b.name}`;
+  if(brandSub) brandSub.textContent = "PDF-style form UI (Demo)";
+  document.title = `Surya Parking Yard - Vehicle Inventory • ${b.name}`;
+
+  if(slotNoteEl){
+    slotNoteEl.innerHTML = `
+      <b>Reserved:</b> 1–10 Cycles, 11–30 3 Wheelers, 31–50 Passenger Vehicles, 51–100 Cars
+      <span class="dot">•</span>
+      <b>Occupied:</b> ${formatRanges(b.occupiedRanges)}
+    `;
+  }
+}
+
+function populateBranchSelects(){
+  const opts = BRANCHES.map(b => `<option value="${b.id}">${b.name}</option>`).join("");
+
+  if(branchSelect){
+    branchSelect.innerHTML = opts;
+    branchSelect.value = getBranchId();
+  }
+  if(formBranch){
+    formBranch.innerHTML = opts;
+    formBranch.value = getBranchId();
+  }
+}
+
+// Init branch dropdowns
+populateBranchSelects();
+applyBranchUI();
+
+// Switch dashboard branch
+if(branchSelect){
+  branchSelect.addEventListener("change", () => {
+    setBranchId(branchSelect.value);
+    applyBranchUI();
+    renderList();
+    renderParkingSlots();
+    show("dash");
+  });
+}
+
+// -------------------- Views --------------------
 let currentId = null;
 let currentPhotos = [];
 
-// View switch
 function show(view){
   dashboardView.classList.toggle("hidden", view !== "dash");
   formView.classList.toggle("hidden", view !== "form");
   window.scrollTo({top:0, behavior:"smooth"});
 }
 
-// Inventory number generator
+btnDashboard.onclick = () => show("dash");
+btnNew.onclick = () => openNew();
+btnPrint.onclick = () => window.print();
+
+// -------------------- Inventory No generator --------------------
 function pad2(n){ return String(n).padStart(2,"0"); }
 function newInventoryNo() {
   const d = new Date();
   return `INV-${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${Math.floor(Math.random()*9000+1000)}`;
 }
+function setStatusUI(status){ statusBadge.textContent = status; }
 
-function setStatusUI(status){
-  statusBadge.textContent = status;
-}
-
-function updateStats(allRecords, shownCount){
-  if(!Array.isArray(allRecords)) allRecords = [];
-  const total = allRecords.length;
-
-  const byType = (t) => allRecords.filter(r => (r.vehicleType || "").toUpperCase() === t).length;
-
-  if(statTotal) statTotal.textContent = total;
-  if(stat2W) stat2W.textContent = byType("2W");
-  if(statSUV) statSUV.textContent = byType("SUV");
-  if(statLCV) statLCV.textContent = byType("LCV");
-
-  if(resultsMeta){
-    const sc = typeof shownCount === "number" ? shownCount : total;
-    resultsMeta.textContent = total === sc ? `Showing ${sc}` : `Showing ${sc} of ${total}`;
-  }
-}
-
-function setFormLocked(isLocked){
-  document.body.classList.toggle("form-locked", !!isLocked);
-
-  if(lockBanner){
-    lockBanner.classList.toggle("hidden", !isLocked);
-  }
-
-  // Disable/enable all form inputs
-  const inputs = formView.querySelectorAll("input, select, textarea");
-  inputs.forEach(el => {
-    if(el.id === "inventoryNo") { el.disabled = true; return; } // always disabled
-    // allow editing only if unlocked
-    el.disabled = !!isLocked;
-  });
-
-  // Action buttons
-  btnSaveDraft.disabled = !!isLocked;
-  btnSubmit.disabled = !!isLocked;
-  btnDelete.disabled = !!isLocked;
-
-  // NOTE: signatures & photos are blocked via CSS pointer-events when locked
-}
-
-// ---------- Signature pad ----------
+// -------------------- Signature pad --------------------
 function initSignaturePad(canvas){
   const ctx = canvas.getContext("2d");
   ctx.lineWidth = 2.2;
@@ -137,11 +159,7 @@ function initSignaturePad(canvas){
     return {x,y};
   }
 
-  function start(e){
-    e.preventDefault();
-    pad.drawing = true;
-    pad.last = pos(e);
-  }
+  function start(e){ e.preventDefault(); pad.drawing = true; pad.last = pos(e); }
   function move(e){
     if(!pad.drawing) return;
     e.preventDefault();
@@ -172,9 +190,7 @@ function clearCanvas(canvas){
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0,0,canvas.width,canvas.height);
 }
-function canvasToDataUrl(canvas){
-  return canvas.toDataURL("image/png");
-}
+function canvasToDataUrl(canvas){ return canvas.toDataURL("image/png"); }
 function dataUrlToCanvas(canvas, dataUrl){
   if(!dataUrl) return;
   const img = new Image();
@@ -186,7 +202,15 @@ function dataUrlToCanvas(canvas, dataUrl){
   img.src = dataUrl;
 }
 
-// ---------- Photos ----------
+// init pads
+initSignaturePad(sigCanvas1);
+initSignaturePad(sigCanvas2);
+initSignaturePad(sigCanvas3);
+btnClearSig1.onclick = () => clearCanvas(sigCanvas1);
+btnClearSig2.onclick = () => clearCanvas(sigCanvas2);
+btnClearSig3.onclick = () => clearCanvas(sigCanvas3);
+
+// -------------------- Photos (multi upload) --------------------
 async function fileToDataUrl(file){
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -199,18 +223,20 @@ async function fileToDataUrl(file){
 function renderPhotos(){
   if(!photoGrid) return;
   photoGrid.innerHTML = "";
+
   if(!currentPhotos.length){
     photoGrid.innerHTML = `<div class="meta">No photos added.</div>`;
     return;
   }
+
   currentPhotos.forEach(p => {
     const div = document.createElement("div");
     div.className = "photo-card";
     div.innerHTML = `
-      <img src="${p.dataUrl}" alt="${p.type}">
+      <img src="${p.dataUrl}" alt="${escapeHtml(p.type)}">
       <div class="photo-meta">
         <div>
-          <div class="type">${p.type}</div>
+          <div class="type">${escapeHtml(p.type)}</div>
           <div class="meta">${new Date(p.createdAt).toLocaleString()}</div>
         </div>
         <button class="danger" data-id="${p.id}">Remove</button>
@@ -224,19 +250,42 @@ function renderPhotos(){
   });
 }
 
-if(btnAddPhoto){
-  btnAddPhoto.onclick = async () => {
-    const file = photoFile.files?.[0];
-    if(!file) return alert("Choose a photo first.");
-    if(file.size > 2_500_000) return alert("Photo too large for demo storage (< ~2.5MB).");
-    const dataUrl = await fileToDataUrl(file);
-    currentPhotos.push({ id: crypto.randomUUID(), type: photoType.value, dataUrl, createdAt: new Date().toISOString() });
-    photoFile.value = "";
+if(btnAddPhotos){
+  btnAddPhotos.onclick = async () => {
+    const files = Array.from(photoFiles.files || []);
+    if(!files.length) return alert("Choose photo(s) first.");
+
+    // Hard cap for demo localStorage stability
+    if(files.some(f => f.size > 2_500_000)) {
+      return alert("One of the photos is too large for demo storage (keep each image under ~2.5MB).");
+    }
+
+    const type = photoType.value;
+    for(const f of files){
+      const dataUrl = await fileToDataUrl(f);
+      currentPhotos.push({
+        id: crypto.randomUUID(),
+        type,
+        fileName: f.name,
+        dataUrl,
+        createdAt: new Date().toISOString()
+      });
+    }
+    photoFiles.value = "";
     renderPhotos();
   };
 }
 
-// ---------- Form reset (IMPORTANT: makes New Inventory empty) ----------
+if(btnClearPhotos){
+  btnClearPhotos.onclick = () => {
+    if(!currentPhotos.length) return;
+    if(!confirm("Remove all photos from this inventory?")) return;
+    currentPhotos = [];
+    renderPhotos();
+  };
+}
+
+// -------------------- Form reset --------------------
 const CHECKLIST_IDS = [
   "chkFenders","chkHeadLights","chkParkLights","chkHorn","chkSideLights","chkFrontBumper","chkRadiatorCap","chkWindshield","chkWiper",
   "chkTankCap","chkRearBumper","chkRearLights","chkTrapalin",
@@ -246,30 +295,20 @@ const CHECKLIST_IDS = [
 ];
 
 function clearFormToBlankNew(){
-  // basic text/date fields
   [
     "slNo","inventoryDate","agreementNo","financeName","customerName","customerAddress",
     "repoAgencyName","seizedAt","yardInAt","vehicleNo","make","model","mfgYear",
     "engineNo","chassisNo","odometerKm","fuelPct","notes",
-
-    // docs notes
     "docRCNote","docTaxNote","docPermitNote","docInsuranceNote",
-
-    // tyres
     "tyreFLMake","tyreFLSize","tyreFLNo",
     "tyreFRMake","tyreFRSize","tyreFRNo",
     "tyreRLMake","tyreRLSize","tyreRLNo",
     "tyreRRMake","tyreRRSize","tyreRRNo",
     "tyreSPMake","tyreSPSize","tyreSPNo",
-
-    // keys other note
     "keyOtherNote",
-
-    // condition
     "batteryMake","batteryNo"
   ].forEach(id => setVal(id, ""));
 
-  // selects defaults
   setVal("vehicleType", "2W");
   setVal("tyreFLType", "Original");
   setVal("tyreFRType", "Original");
@@ -282,52 +321,34 @@ function clearFormToBlankNew(){
   setVal("accidentFlag", "No");
   setVal("towingFlag", "No");
 
-  // docs checkboxes
-  setChecked("docRC", false);
-  setChecked("docTax", false);
-  setChecked("docPermit", false);
-  setChecked("docInsurance", false);
-
-  // keys checkboxes
-  setChecked("keyEngine", false);
-  setChecked("keyDoor", false);
-  setChecked("keyDslTank", false);
-  setChecked("keyOther", false);
-
-  // checklist checkboxes
+  ["docRC","docTax","docPermit","docInsurance"].forEach(id => setChecked(id, false));
   CHECKLIST_IDS.forEach(id => setChecked(id, false));
+  ["keyEngine","keyDoor","keyDslTank","keyOther"].forEach(id => setChecked(id, false));
 
-  // photos
+  sigName1.value = "";
+  sigName2.value = "";
+  sigName3.value = "";
+  clearCanvas(sigCanvas1);
+  clearCanvas(sigCanvas2);
+  clearCanvas(sigCanvas3);
+
+  // NEW: Default branch in form = current dashboard branch
+  if(formBranch) formBranch.value = getBranchId();
+
   currentPhotos = [];
-  if(photoFile) photoFile.value = "";
   renderPhotos();
 
-  // signatures
-  sigName1.value = ""; sigName2.value = ""; sigName3.value = "";
-  clearCanvas(sigCanvas1); clearCanvas(sigCanvas2); clearCanvas(sigCanvas3);
-
-  // status & new inventory no
+  inventoryNo.value = newInventoryNo();
   setStatusUI("Draft");
-  setVal("inventoryNo", newInventoryNo());
-
-  // unlocked for new draft
-  setFormLocked(false);
 }
 
-// ---------- Record mapping ----------
-function getChecklist(){
-  const out = {};
-  CHECKLIST_IDS.forEach(id => out[id] = getChecked(id));
-  return out;
-}
-function setChecklist(obj){
-  if(!obj) return;
-  Object.keys(obj).forEach(id => setChecked(id, obj[id]));
-}
+// -------------------- Collect + Fill --------------------
+function collectForm(){
+  const branchId = formBranch ? formBranch.value : getBranchId();
 
-function getRecordFromForm(status){
   return {
     id: currentId || crypto.randomUUID(),
+    branchId,
 
     slNo: getVal("slNo"),
     inventoryNo: getVal("inventoryNo"),
@@ -339,7 +360,6 @@ function getRecordFromForm(status){
     repoAgencyName: getVal("repoAgencyName"),
     seizedAt: getVal("seizedAt"),
     yardInAt: getVal("yardInAt"),
-
     vehicleType: getVal("vehicleType"),
     vehicleNo: getVal("vehicleNo"),
     make: getVal("make"),
@@ -355,7 +375,7 @@ function getRecordFromForm(status){
       rc: { received: getChecked("docRC"), note: getVal("docRCNote") },
       tax: { received: getChecked("docTax"), note: getVal("docTaxNote") },
       permit: { received: getChecked("docPermit"), note: getVal("docPermitNote") },
-      insurance: { received: getChecked("docInsurance"), note: getVal("docInsuranceNote") },
+      insurance: { received: getChecked("docInsurance"), note: getVal("docInsuranceNote") }
     },
 
     tyres: {
@@ -363,10 +383,10 @@ function getRecordFromForm(status){
       fr: { make:getVal("tyreFRMake"), size:getVal("tyreFRSize"), no:getVal("tyreFRNo"), type:getVal("tyreFRType") },
       rl: { make:getVal("tyreRLMake"), size:getVal("tyreRLSize"), no:getVal("tyreRLNo"), type:getVal("tyreRLType") },
       rr: { make:getVal("tyreRRMake"), size:getVal("tyreRRSize"), no:getVal("tyreRRNo"), type:getVal("tyreRRType") },
-      sp: { make:getVal("tyreSPMake"), size:getVal("tyreSPSize"), no:getVal("tyreSPNo"), type:getVal("tyreSPType") },
+      sp: { make:getVal("tyreSPMake"), size:getVal("tyreSPSize"), no:getVal("tyreSPNo"), type:getVal("tyreSPType") }
     },
 
-    checklist: getChecklist(),
+    checklist: Object.fromEntries(CHECKLIST_IDS.map(id => [id, getChecked(id)])),
 
     condition: {
       batteryMake: getVal("batteryMake"),
@@ -387,22 +407,19 @@ function getRecordFromForm(status){
     photos: currentPhotos,
 
     signatures: {
-      surrender: { name: sigName1.value.trim(), image: canvasToDataUrl(sigCanvas1) },
-      yard: { name: sigName2.value.trim(), image: canvasToDataUrl(sigCanvas2) },
-      godown: { name: sigName3.value.trim(), image: canvasToDataUrl(sigCanvas3) },
-    },
-
-    status,
-    updatedAt: new Date().toISOString()
+      surrender: { name: sigName1.value, image: canvasToDataUrl(sigCanvas1) },
+      yard: { name: sigName2.value, image: canvasToDataUrl(sigCanvas2) },
+      godown: { name: sigName3.value, image: canvasToDataUrl(sigCanvas3) }
+    }
   };
 }
 
 function fillForm(r){
-  currentId = r.id || null;
+  if(formBranch) formBranch.value = r.branchId || getBranchId();
 
   setVal("slNo", r.slNo);
+  setVal("inventoryNo", r.inventoryNo);
   setVal("inventoryDate", r.inventoryDate);
-
   setVal("agreementNo", r.agreementNo);
   setVal("financeName", r.financeName);
   setVal("customerName", r.customerName);
@@ -410,7 +427,6 @@ function fillForm(r){
   setVal("repoAgencyName", r.repoAgencyName);
   setVal("seizedAt", r.seizedAt);
   setVal("yardInAt", r.yardInAt);
-
   setVal("vehicleType", r.vehicleType || "2W");
   setVal("vehicleNo", r.vehicleNo);
   setVal("make", r.make);
@@ -418,424 +434,319 @@ function fillForm(r){
   setVal("mfgYear", r.mfgYear);
   setVal("engineNo", r.engineNo);
   setVal("chassisNo", r.chassisNo);
-
   setVal("odometerKm", r.odometerKm);
   setVal("fuelPct", r.fuelPct);
   setVal("notes", r.notes);
 
-  // Docs
-  setChecked("docRC", r.documents?.rc?.received); setVal("docRCNote", r.documents?.rc?.note);
-  setChecked("docTax", r.documents?.tax?.received); setVal("docTaxNote", r.documents?.tax?.note);
-  setChecked("docPermit", r.documents?.permit?.received); setVal("docPermitNote", r.documents?.permit?.note);
-  setChecked("docInsurance", r.documents?.insurance?.received); setVal("docInsuranceNote", r.documents?.insurance?.note);
+  setChecked("docRC", !!r.documents?.rc?.received); setVal("docRCNote", r.documents?.rc?.note);
+  setChecked("docTax", !!r.documents?.tax?.received); setVal("docTaxNote", r.documents?.tax?.note);
+  setChecked("docPermit", !!r.documents?.permit?.received); setVal("docPermitNote", r.documents?.permit?.note);
+  setChecked("docInsurance", !!r.documents?.insurance?.received); setVal("docInsuranceNote", r.documents?.insurance?.note);
 
-  // Tyres
   setVal("tyreFLMake", r.tyres?.fl?.make); setVal("tyreFLSize", r.tyres?.fl?.size); setVal("tyreFLNo", r.tyres?.fl?.no); setVal("tyreFLType", r.tyres?.fl?.type || "Original");
   setVal("tyreFRMake", r.tyres?.fr?.make); setVal("tyreFRSize", r.tyres?.fr?.size); setVal("tyreFRNo", r.tyres?.fr?.no); setVal("tyreFRType", r.tyres?.fr?.type || "Original");
   setVal("tyreRLMake", r.tyres?.rl?.make); setVal("tyreRLSize", r.tyres?.rl?.size); setVal("tyreRLNo", r.tyres?.rl?.no); setVal("tyreRLType", r.tyres?.rl?.type || "Original");
   setVal("tyreRRMake", r.tyres?.rr?.make); setVal("tyreRRSize", r.tyres?.rr?.size); setVal("tyreRRNo", r.tyres?.rr?.no); setVal("tyreRRType", r.tyres?.rr?.type || "Original");
   setVal("tyreSPMake", r.tyres?.sp?.make); setVal("tyreSPSize", r.tyres?.sp?.size); setVal("tyreSPNo", r.tyres?.sp?.no); setVal("tyreSPType", r.tyres?.sp?.type || "Original");
 
-  // Condition
+  CHECKLIST_IDS.forEach(id => setChecked(id, !!r.checklist?.[id]));
+
   setVal("batteryMake", r.condition?.batteryMake);
   setVal("batteryNo", r.condition?.batteryNo);
-  setVal("batteryCondition", r.condition?.batteryCondition);
-  setVal("engineStatus", r.condition?.engineStatus);
+  setVal("batteryCondition", r.condition?.batteryCondition || "");
+  setVal("engineStatus", r.condition?.engineStatus || "");
   setVal("accidentFlag", r.condition?.accident || "No");
   setVal("towingFlag", r.condition?.towing || "No");
 
-  setChecked("keyEngine", r.condition?.keys?.engineKey);
-  setChecked("keyDoor", r.condition?.keys?.doorKey);
-  setChecked("keyDslTank", r.condition?.keys?.dslTankKey);
-  setChecked("keyOther", r.condition?.keys?.otherKey);
-  setVal("keyOtherNote", r.condition?.keys?.otherNote);
+  setChecked("keyEngine", !!r.condition?.keys?.engineKey);
+  setChecked("keyDoor", !!r.condition?.keys?.doorKey);
+  setChecked("keyDslTank", !!r.condition?.keys?.dslTankKey);
+  setChecked("keyOther", !!r.condition?.keys?.otherKey);
+  setVal("keyOtherNote", r.condition?.keys?.otherNote || "");
 
-  // Checklist
-  setChecklist(r.checklist);
-
-  // Photos
-  currentPhotos = Array.isArray(r.photos) ? r.photos : [];
+  currentPhotos = r.photos || [];
   renderPhotos();
 
-  // Signatures
   sigName1.value = r.signatures?.surrender?.name || "";
   sigName2.value = r.signatures?.yard?.name || "";
   sigName3.value = r.signatures?.godown?.name || "";
 
-  clearCanvas(sigCanvas1); clearCanvas(sigCanvas2); clearCanvas(sigCanvas3);
   dataUrlToCanvas(sigCanvas1, r.signatures?.surrender?.image);
   dataUrlToCanvas(sigCanvas2, r.signatures?.yard?.image);
   dataUrlToCanvas(sigCanvas3, r.signatures?.godown?.image);
-
-  // Status & inv no
-  const status = r.status || "Draft";
-  setStatusUI(status);
-
-  // keep inventoryNo stable
-  setVal("inventoryNo", r.inventoryNo || newInventoryNo());
-
-  // lock if submitted
-  setFormLocked(status === "Submitted");
 }
 
-function validateForSubmit(){
-  if(!getVal("vehicleNo")) return "Vehicle No is required.";
-  if(!getVal("customerName")) return "Customer Name is required.";
-  return null;
+// -------------------- Open New / Edit --------------------
+function openNew(){
+  currentId = null;
+  clearFormToBlankNew();
+  show("form");
 }
 
-// Dashboard rendering
+function openEdit(id){
+  // search across ALL branches to find the record
+  let found = null;
+  let foundBranch = null;
+
+  for(const b of BRANCHES){
+    const list = loadRecords(b.id);
+    const r = list.find(x => x.id === id);
+    if(r){ found = r; foundBranch = b.id; break; }
+  }
+  if(!found) return;
+
+  currentId = found.id;
+  fillForm(found);
+  setStatusUI(found.status || "Draft");
+  show("form");
+
+  // Keep dashboard branch where the record belongs
+  if(foundBranch){
+    setBranchId(foundBranch);
+    if(branchSelect) branchSelect.value = foundBranch;
+    applyBranchUI();
+  }
+}
+
+// -------------------- Dashboard list --------------------
 function renderList(){
-  const q = (searchBox.value || "").trim().toLowerCase();
-  const status = statusFilter.value;
+  const branchId = getBranchId();
+  const q = (searchBox?.value || "").trim().toLowerCase();
+  const f = statusFilter?.value || "ALL";
 
-  const all = loadRecords();
-  const records = all.filter(r => {
-    const okStatus = (status === "ALL") ? true : (r.status === status);
-    if(!okStatus) return false;
+  const records = loadRecords(branchId);
+
+  const filtered = records.filter(r => {
+    if(f !== "ALL" && (r.status || "Draft") !== f) return false;
     if(!q) return true;
-
-    const hay = [
-      r.inventoryNo, r.vehicleNo, r.customerName, r.financeName, r.agreementNo
-    ].filter(Boolean).join(" ").toLowerCase();
-    return hay.includes(q);
+    return (
+      (r.inventoryNo || "").toLowerCase().includes(q) ||
+      (r.vehicleNo || "").toLowerCase().includes(q) ||
+      (r.customerName || "").toLowerCase().includes(q) ||
+      (r.financeName || "").toLowerCase().includes(q) ||
+      (r.agreementNo || "").toLowerCase().includes(q)
+    );
   });
 
-  updateStats(all, records.length);
-
   recordsList.innerHTML = "";
-  if(!records.length){
-    recordsList.innerHTML = `<div class="meta">No records found.</div>`;
+  if(!filtered.length){
+    recordsList.innerHTML = `<div class="meta">No records found for this branch.</div>`;
     return;
   }
 
-  records.forEach(r => {
+  filtered.forEach(r => {
+    const st = (r.status || "Draft");
     const div = document.createElement("div");
-    div.className = "record-card";
-
-    const meta = [
-      r.vehicleNo || "(no vehicle)",
-      r.vehicleType || "",
-      r.customerName || "",
-      r.updatedAt ? new Date(r.updatedAt).toLocaleString() : ""
-    ].filter(Boolean).join(" • ");
-
-    const isSubmitted = r.status === "Submitted";
-    const statusChip = isSubmitted
-      ? `<span class="chip submitted">Submitted</span>`
-      : `<span class="chip draft">Draft</span>`;
-
-    const editChip = isSubmitted
-      ? `<span class="chip locked">Locked</span>`
-      : `<span class="chip editable">Editable</span>`;
-
-    const btnText = isSubmitted ? "View" : "Open";
-
+    div.className = "record";
     div.innerHTML = `
-      <div class="card-top">
-        <div>
-          <div class="inv-no">${r.inventoryNo || "(no inv no)"}</div>
-          <div class="card-meta">${meta}</div>
-        </div>
-        <div class="chips">
-          ${statusChip}
-          ${editChip}
-        </div>
+      <div class="left">
+        <strong>${escapeHtml(r.inventoryNo || "-")}</strong>
+        <div class="meta">${escapeHtml(r.vehicleNo || "-")} • ${escapeHtml(r.customerName || "-")} • ${escapeHtml(r.financeName || "-")}</div>
       </div>
-
-      <div class="card-actions">
-        <button data-id="${r.id}" class="primary">${btnText}</button>
+      <div class="right">
+        <span class="pill ${st === "Submitted" ? "sub" : "draft"}">${escapeHtml(st)}</span>
+        <button class="ghost" data-edit="${r.id}">Open</button>
       </div>
     `;
-
-    div.querySelector("button").onclick = () => {
-      fillForm(r);
-      show("form");
-    };
-
+    div.querySelector("[data-edit]").onclick = () => openEdit(r.id);
     recordsList.appendChild(div);
   });
 }
 
-// Events
-btnNew.onclick = () => {
-  // NEW: open a completely empty form for new entry
-  currentId = null;
-  clearFormToBlankNew();
-  show("form");
-};
-
-btnDashboard.onclick = () => { renderList(); show("dash"); };
-btnCancel.onclick = () => { renderList(); show("dash"); };
-
-btnPrint.onclick = () => {
-  if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
-  window.print();
-};
-
-btnSaveDraft.onclick = () => {
-  if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
-  const rec = getRecordFromForm("Draft");
-  upsertRecord(rec);
-  alert("Saved as Draft");
-  renderList();
-  show("dash");
-};
-
-btnSubmit.onclick = () => {
-  const err = validateForSubmit();
-  if(err) return alert(err);
-
-  if(!getVal("inventoryNo")) setVal("inventoryNo", newInventoryNo());
-  const rec = getRecordFromForm("Submitted");
-  upsertRecord(rec);
-  alert("Submitted");
-  renderList();
-  show("dash");
-};
-
-btnDelete.onclick = () => {
-  if(!currentId) return alert("Nothing to delete.");
-  if(!confirm("Delete this record?")) return;
-  deleteRecord(currentId);
-  currentId = null;
-  renderList();
-  show("dash");
-};
+if(searchBox) searchBox.addEventListener("input", renderList);
+if(statusFilter) statusFilter.addEventListener("change", renderList);
 
 btnExport.onclick = () => {
-  const data = JSON.stringify(loadRecords(), null, 2);
-  const blob = new Blob([data], {type:"application/json"});
+  const branchId = getBranchId();
+  const blob = new Blob([JSON.stringify(loadRecords(branchId), null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "surya-parking-yard-inventory.json";
+  a.download = `surya-inventory-${branchId}.json`;
   a.click();
   URL.revokeObjectURL(url);
 };
 
 btnClearAll.onclick = () => {
-  if(!confirm("Delete ALL local records?")) return;
-  clearAllRecords();
+  const branchId = getBranchId();
+  if(!confirm(`Clear ALL records for ${getBranchConfig(branchId).name}?`)) return;
+  clearAllRecords(branchId);
   renderList();
 };
 
-searchBox.addEventListener("input", renderList);
-statusFilter.addEventListener("change", renderList);
+// -------------------- Form actions --------------------
+btnCancel.onclick = () => show("dash");
 
-// Signature pads init
-initSignaturePad(sigCanvas1);
-initSignaturePad(sigCanvas2);
-initSignaturePad(sigCanvas3);
+function saveWithStatus(status){
+  const r = collectForm();
+  r.status = status;
+  r.updatedAt = new Date().toISOString();
 
-btnClearSig1.onclick = () => clearCanvas(sigCanvas1);
-btnClearSig2.onclick = () => clearCanvas(sigCanvas2);
-btnClearSig3.onclick = () => clearCanvas(sigCanvas3);
+  // IMPORTANT: Save to selected branch
+  const targetBranch = r.branchId;
 
-// ---------- Sample Data (auto-seed when no records exist) ----------
-function seedSampleDataIfEmpty(){
-  const existing = loadRecords();
-  if (Array.isArray(existing) && existing.length) return;
+  upsertRecord(r, targetBranch);
+  currentId = r.id;
+  setStatusUI(status);
 
-  const nowIso = new Date().toISOString();
+  // After save/submit -> switch dashboard to that branch so user sees it
+  setBranchId(targetBranch);
+  if(branchSelect) branchSelect.value = targetBranch;
+  applyBranchUI();
 
-  const sampleRecords = [
-    {
-      id: "SAMPLE-1",
-      slNo: "138",
-      inventoryNo: "INV-20250206-1001",
-      inventoryDate: "2025-02-06",
-      agreementNo: "AG-784512",
-      financeName: "Tata Capital Finance Ltd",
-      customerName: "Ravi Kumar",
-      customerAddress: "Plot No 12, Hayathnagar, Hyderabad",
-      repoAgencyName: "Sri Sai Recovery Services",
-      seizedAt: "2025-02-05T14:30",
-      yardInAt: "2025-02-05T18:15",
-      vehicleType: "SUV",
-      vehicleNo: "TS09AB1234",
-      make: "Hyundai",
-      model: "Creta",
-      mfgYear: "2022",
-      engineNo: "ENG9823471HY",
-      chassisNo: "CHS98234HYD21",
-      odometerKm: "45231",
-      fuelPct: "35",
-      notes: "Minor scratches on rear bumper.",
-      documents: {
-        rc: { received: true, note: "Original RC" },
-        tax: { received: true, note: "Tax paid till 2025" },
-        permit: { received: false, note: "" },
-        insurance: { received: true, note: "Valid till 2025-12" }
-      },
-      tyres: {
-        fl: { make: "MRF", size: "215/60R16", no: "MRF-88321", type: "Original" },
-        fr: { make: "MRF", size: "215/60R16", no: "MRF-88322", type: "Original" },
-        rl: { make: "MRF", size: "215/60R16", no: "MRF-88323", type: "Retread" },
-        rr: { make: "MRF", size: "215/60R16", no: "MRF-88324", type: "Retread" },
-        sp: { make: "MRF", size: "215/60R16", no: "MRF-88325", type: "Original" }
-      },
-      checklist: {
-        chkFenders: true, chkHeadLights: true, chkParkLights: true, chkHorn: true, chkSideLights: true,
-        chkFrontBumper: true, chkRadiatorCap: true, chkWindshield: true, chkWiper: true, chkTankCap: true,
-        chkRearBumper: true, chkRearLights: true, chkTrapalin: false, chkDoorHandles: true, chkDoorGlass: true,
-        chkInstrumentPanel: true, chkSpeedometer: true, chkRearViewMirror: true, chkCeilingLights: true,
-        chkRubberMats: true, chkMudguard: false, chkMudLamp: false, chkSunVisor: true, chkStepneyWheel: true,
-        chkTVLCD: false, chkCDDVD: false, chkAmplifier: false, chkSelfStarter: true, chkAlternator: true,
-        chkWheelSpanner: true, chkAntenna: true, chkAC: true, chkCentralLock: true, chkBadges: true,
-        chkLuggageCarrier: false
-      },
-      condition: {
-        batteryMake: "Exide",
-        batteryNo: "EX-778812",
-        batteryCondition: "Good",
-        engineStatus: "Running",
-        accident: "No",
-        towing: "No",
-        keys: { engineKey: true, doorKey: true, dslTankKey: false, otherKey: false, otherNote: "" }
-      },
-      photos: [],
-      signatures: {
-        surrender: { name: "Ravi Kumar", image: "" },
-        yard: { name: "M. Srinivas", image: "" },
-        godown: { name: "K. Ramesh", image: "" }
-      },
-      status: "Submitted",
-      updatedAt: nowIso
-    },
-    {
-      id: "SAMPLE-2",
-      slNo: "139",
-      inventoryNo: "INV-20250206-1002",
-      inventoryDate: "2025-02-06",
-      agreementNo: "AG-998211",
-      financeName: "Bajaj Finserv",
-      customerName: "Mahesh Reddy",
-      customerAddress: "Pedda Amberpet, RR District",
-      repoAgencyName: "Om Recovery Agency",
-      seizedAt: "2025-02-06T09:45",
-      yardInAt: "2025-02-06T11:10",
-      vehicleType: "2W",
-      vehicleNo: "TS10XY5678",
-      make: "Honda",
-      model: "Activa 6G",
-      mfgYear: "2023",
-      engineNo: "ENGACT6789",
-      chassisNo: "CHSACT6789HYD",
-      odometerKm: "12000",
-      fuelPct: "20",
-      notes: "Front indicator broken. Vehicle starts OK.",
-      documents: {
-        rc: { received: true, note: "RC xerox" },
-        tax: { received: true, note: "" },
-        permit: { received: false, note: "" },
-        insurance: { received: false, note: "" }
-      },
-      tyres: {
-        fl: { make: "CEAT", size: "90/100-10", no: "CE-12091", type: "Original" },
-        fr: { make: "CEAT", size: "90/100-10", no: "CE-12092", type: "Original" },
-        rl: { make: "CEAT", size: "90/100-10", no: "CE-12093", type: "Original" },
-        rr: { make: "CEAT", size: "90/100-10", no: "CE-12094", type: "Original" },
-        sp: { make: "", size: "", no: "", type: "Original" }
-      },
-      checklist: {
-        chkFenders: true, chkHeadLights: true, chkParkLights: true, chkHorn: false, chkSideLights: true,
-        chkFrontBumper: true, chkRadiatorCap: false, chkWindshield: false, chkWiper: false, chkTankCap: true,
-        chkRearBumper: false, chkRearLights: true, chkTrapalin: false, chkDoorHandles: false, chkDoorGlass: false,
-        chkInstrumentPanel: true, chkSpeedometer: true, chkRearViewMirror: false, chkCeilingLights: false,
-        chkRubberMats: false, chkMudguard: false, chkMudLamp: false, chkSunVisor: false, chkStepneyWheel: false,
-        chkTVLCD: false, chkCDDVD: false, chkAmplifier: false, chkSelfStarter: true, chkAlternator: true,
-        chkWheelSpanner: false, chkAntenna: false, chkAC: false, chkCentralLock: false, chkBadges: true,
-        chkLuggageCarrier: false
-      },
-      condition: {
-        batteryMake: "Amaron",
-        batteryNo: "AM-553322",
-        batteryCondition: "Good",
-        engineStatus: "Running",
-        accident: "No",
-        towing: "No",
-        keys: { engineKey: true, doorKey: false, dslTankKey: false, otherKey: true, otherNote: "Seat lock key" }
-      },
-      photos: [],
-      signatures: {
-        surrender: { name: "Mahesh Reddy", image: "" },
-        yard: { name: "M. Srinivas", image: "" },
-        godown: { name: "K. Ramesh", image: "" }
-      },
-      status: "Draft",
-      updatedAt: nowIso
-    },
-    {
-      id: "SAMPLE-3",
-      slNo: "140",
-      inventoryNo: "INV-20250206-1003",
-      inventoryDate: "2025-02-06",
-      agreementNo: "AG-441276",
-      financeName: "HDFC Bank Auto Loans",
-      customerName: "Shiva Prasad",
-      customerAddress: "LB Nagar, Hyderabad",
-      repoAgencyName: "Sai Vinayaka Repo",
-      seizedAt: "2025-02-04T16:20",
-      yardInAt: "2025-02-04T20:00",
-      vehicleType: "LCV",
-      vehicleNo: "AP28CD9090",
-      make: "Mahindra",
-      model: "Bolero Pickup",
-      mfgYear: "2021",
-      engineNo: "ENGMHB9090",
-      chassisNo: "CHSMHB9090LCV",
-      odometerKm: "98210",
-      fuelPct: "60",
-      notes: "Rear tail light damaged. Cargo area intact.",
-      documents: {
-        rc: { received: true, note: "Original" },
-        tax: { received: true, note: "Up to date" },
-        permit: { received: true, note: "National permit" },
-        insurance: { received: true, note: "Valid till 2025-08" }
-      },
-      tyres: {
-        fl: { make: "Apollo", size: "195R15", no: "AP-77801", type: "Retread" },
-        fr: { make: "Apollo", size: "195R15", no: "AP-77802", type: "Retread" },
-        rl: { make: "Apollo", size: "195R15", no: "AP-77803", type: "Original" },
-        rr: { make: "Apollo", size: "195R15", no: "AP-77804", type: "Original" },
-        sp: { make: "Apollo", size: "195R15", no: "AP-77805", type: "Original" }
-      },
-      checklist: {
-        chkFenders: true, chkHeadLights: true, chkParkLights: true, chkHorn: true, chkSideLights: true,
-        chkFrontBumper: true, chkRadiatorCap: true, chkWindshield: true, chkWiper: true, chkTankCap: true,
-        chkRearBumper: true, chkRearLights: false, chkTrapalin: true, chkDoorHandles: true, chkDoorGlass: true,
-        chkInstrumentPanel: true, chkSpeedometer: true, chkRearViewMirror: true, chkCeilingLights: false,
-        chkRubberMats: false, chkMudguard: true, chkMudLamp: true, chkSunVisor: true, chkStepneyWheel: true,
-        chkTVLCD: false, chkCDDVD: false, chkAmplifier: false, chkSelfStarter: true, chkAlternator: true,
-        chkWheelSpanner: true, chkAntenna: true, chkAC: false, chkCentralLock: false, chkBadges: true,
-        chkLuggageCarrier: true
-      },
-      condition: {
-        batteryMake: "Exide",
-        batteryNo: "EX-901122",
-        batteryCondition: "Weak",
-        engineStatus: "Running",
-        accident: "No",
-        towing: "Yes",
-        keys: { engineKey: true, doorKey: true, dslTankKey: true, otherKey: false, otherNote: "" }
-      },
-      photos: [],
-      signatures: {
-        surrender: { name: "Shiva Prasad", image: "" },
-        yard: { name: "M. Srinivas", image: "" },
-        godown: { name: "K. Ramesh", image: "" }
-      },
-      status: "Submitted",
-      updatedAt: nowIso
-    }
-  ];
-
-  sampleRecords.forEach(r => upsertRecord(r));
+  renderList();
+  renderParkingSlots();
+  show("dash");
 }
 
-// init
-seedSampleDataIfEmpty();
+btnSaveDraft.onclick = () => saveWithStatus("Draft");
+btnSubmit.onclick = () => saveWithStatus("Submitted");
+
+btnDelete.onclick = () => {
+  if(!currentId) return alert("Nothing to delete.");
+
+  const b = formBranch ? formBranch.value : getBranchId();
+  if(!confirm("Delete this record?")) return;
+
+  deleteRecord(currentId, b);
+  currentId = null;
+
+  // go to that branch dashboard
+  setBranchId(b);
+  if(branchSelect) branchSelect.value = b;
+  applyBranchUI();
+
+  renderList();
+  show("dash");
+};
+
+// -------------------- Parking Slots (per branch) --------------------
+const PARKING_RULES = [
+  { from: 1,  to: 10,  type: "Cycle" },
+  { from: 11, to: 30,  type: "3 Wheeler" },
+  { from: 31, to: 50,  type: "Passenger Vehicle" },
+  { from: 51, to: 100, type: "Car" },
+];
+
+function slotTypeFor(n){
+  for(const r of PARKING_RULES){
+    if(n >= r.from && n <= r.to) return r.type;
+  }
+  return "Unknown";
+}
+function rangeSet(ranges){
+  const set = new Set();
+  (ranges || []).forEach(([a,b]) => {
+    for(let i=a; i<=b; i++) set.add(i);
+  });
+  return set;
+}
+function buildAllSlots(occupiedRanges){
+  const occupiedSet = rangeSet(occupiedRanges);
+  const out = [];
+  for(let n=1; n<=100; n++){
+    const type = slotTypeFor(n);
+    const occupied = occupiedSet.has(n);
+    out.push({
+      slot: n,
+      reservedFor: type,
+      status: occupied ? "Occupied" : "Vacant",
+      description: occupied ? `Occupied - ${type}` : `Vacant - ${type} slot`
+    });
+  }
+  return out;
+}
+let __slotsCache = null;
+let __slotsCacheBranch = null;
+
+function getAllSlots(){
+  const b = getBranchId();
+  if(!__slotsCache || __slotsCacheBranch !== b){
+    __slotsCache = buildAllSlots(getBranchConfig(b).occupiedRanges || []);
+    __slotsCacheBranch = b;
+  }
+  return __slotsCache;
+}
+
+function renderParkingSlots(){
+  const ALL_SLOTS = getAllSlots();
+  const vacantBody = byId("vacantSlotsBody");
+  const occupiedBody = byId("occupiedSlotsBody");
+  if(!vacantBody || !occupiedBody) return;
+
+  const slotSearch = byId("slotSearch");
+  const slotTypeFilter = byId("slotTypeFilter");
+  const slotStatusFilter = byId("slotStatusFilter");
+
+  const q = (slotSearch?.value || "").trim().toLowerCase();
+  const type = slotTypeFilter?.value || "ALL";
+  const status = slotStatusFilter?.value || "ALL";
+
+  const filtered = ALL_SLOTS.filter(s => {
+    if(type !== "ALL" && s.reservedFor !== type) return false;
+    if(status !== "ALL" && s.status !== status) return false;
+    if(!q) return true;
+    return String(s.slot).includes(q)
+      || s.reservedFor.toLowerCase().includes(q)
+      || s.status.toLowerCase().includes(q);
+  });
+
+  const vacant = filtered.filter(s => s.status === "Vacant");
+  const occupied = filtered.filter(s => s.status === "Occupied");
+
+  const totalOccupied = ALL_SLOTS.filter(s => s.status === "Occupied").length;
+  const totalVacant = ALL_SLOTS.filter(s => s.status === "Vacant").length;
+
+  const statOccupied = byId("statOccupied");
+  const statVacant = byId("statVacant");
+  const statFiltered = byId("statFiltered");
+  if(statOccupied) statOccupied.textContent = totalOccupied;
+  if(statVacant) statVacant.textContent = totalVacant;
+  if(statFiltered) statFiltered.textContent = filtered.length;
+
+  vacantBody.innerHTML = vacant.length
+    ? vacant.map(s => `
+      <tr>
+        <td><b>${s.slot}</b></td>
+        <td>${escapeHtml(s.reservedFor)}</td>
+        <td><span class="slot-pill vacant">Vacant</span></td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="3" class="meta">No vacant slots for current filters.</td></tr>`;
+
+  occupiedBody.innerHTML = occupied.length
+    ? occupied.map(s => `
+      <tr>
+        <td><b>${s.slot}</b></td>
+        <td>${escapeHtml(s.reservedFor)}</td>
+        <td><span class="slot-pill occupied">${escapeHtml(s.description)}</span></td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="3" class="meta">No occupied slots for current filters.</td></tr>`;
+}
+
+// parking controls
+(function initParkingUI(){
+  const slotSearch = byId("slotSearch");
+  const slotTypeFilter = byId("slotTypeFilter");
+  const slotStatusFilter = byId("slotStatusFilter");
+  const btnResetSlots = byId("btnResetSlots");
+
+  if(slotSearch) slotSearch.addEventListener("input", renderParkingSlots);
+  if(slotTypeFilter) slotTypeFilter.addEventListener("change", renderParkingSlots);
+  if(slotStatusFilter) slotStatusFilter.addEventListener("change", renderParkingSlots);
+
+  if(btnResetSlots){
+    btnResetSlots.onclick = () => {
+      if(slotSearch) slotSearch.value = "";
+      if(slotTypeFilter) slotTypeFilter.value = "ALL";
+      if(slotStatusFilter) slotStatusFilter.value = "ALL";
+      renderParkingSlots();
+    };
+  }
+})();
+
+// -------------------- Boot --------------------
 renderList();
+renderParkingSlots();
 show("dash");
-setFormLocked(false);
