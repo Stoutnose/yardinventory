@@ -4,21 +4,27 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Surya Parking Yard - Vehicle Inventory</title>
-
-  <!-- UPDATED: path fixed (same-folder setup) -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-  <!-- Simple Top Bar (not printed) -->
+  <!-- Top Bar -->
   <header class="topbar no-print">
     <div class="topbar-inner">
       <div class="brand">
-        <div class="brand-title">Surya Parking Yard - Inventory</div>
-        <div class="brand-sub">PDF-style form UI (Demo)</div>
+        <div class="brand-title" id="brandTitle">Surya Parking Yard - Inventory</div>
+        <div class="brand-sub" id="brandSub">PDF-style form UI (Demo)</div>
       </div>
 
       <div class="actions">
+        <!-- Branch selector (Dashboard) -->
+        <div class="branch-wrap">
+          <label class="branch-label" for="branchSelect">Location</label>
+          <select id="branchSelect" class="branch-select" title="Select parking yard branch">
+            <!-- options injected by app.js -->
+          </select>
+        </div>
+
         <button id="btnDashboard">Dashboard</button>
         <button id="btnNew" class="primary">+ New Inventory</button>
         <button id="btnPrint" class="ghost">Print</button>
@@ -28,72 +34,108 @@
 
   <main class="page">
 
-        <!-- Dashboard -->
+    <!-- Dashboard -->
     <section id="dashboardView" class="no-print">
-      <div class="dash-shell">
-        <div class="dash-head">
-          <div class="dash-title">
-            <h2>Dashboard</h2>
-            <div class="dash-sub">Quick view of records and vehicle counts.</div>
+      <div class="panel mb12" id="parkingPanel">
+        <div class="panel-head">
+          <h2>Parking Slots (1–100)</h2>
+          <div class="panel-tools">
+            <input id="slotSearch" class="search" placeholder="Search slot # or type (e.g., 54 or car)" />
+            <select id="slotTypeFilter" class="select">
+              <option value="ALL">All Types</option>
+              <option value="Cycle">Cycles (1–10)</option>
+              <option value="3 Wheeler">3 Wheelers (11–30)</option>
+              <option value="Passenger Vehicle">Passenger Vehicles (31–50)</option>
+              <option value="Car">Cars (51–100)</option>
+            </select>
+            <select id="slotStatusFilter" class="select">
+              <option value="ALL">All Status</option>
+              <option value="Vacant">Vacant</option>
+              <option value="Occupied">Occupied</option>
+            </select>
+            <button id="btnResetSlots">Reset</button>
+          </div>
+        </div>
+
+        <div class="slot-note" id="slotNote"></div>
+
+        <div class="slot-summary" id="slotSummary">
+          <div class="stat">
+            <div class="stat-label">Total Slots</div>
+            <div class="stat-value" id="statTotal">100</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Occupied</div>
+            <div class="stat-value" id="statOccupied">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Vacant</div>
+            <div class="stat-value" id="statVacant">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Filtered Result</div>
+            <div class="stat-value" id="statFiltered">0</div>
+          </div>
+        </div>
+
+        <div class="slot-grid mt8">
+          <div class="slot-box">
+            <div class="slot-box-title">Vacant Slots</div>
+            <div class="table-wrap">
+              <table class="slot-table">
+                <thead>
+                  <tr>
+                    <th class="w20">Slot</th>
+                    <th>Reserved For</th>
+                    <th class="w20">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="vacantSlotsBody"></tbody>
+              </table>
+            </div>
           </div>
 
-          <div class="dash-head-actions">
-            <button id="btnExport" class="ghost">Export JSON</button>
+          <div class="slot-box">
+            <div class="slot-box-title">Occupied Slots (with description)</div>
+            <div class="table-wrap">
+              <table class="slot-table">
+                <thead>
+                  <tr>
+                    <th class="w20">Slot</th>
+                    <th>Reserved For</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody id="occupiedSlotsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Records</h2>
+          <div class="panel-tools">
+            <input id="searchBox" class="search" placeholder="Search by Inventory No / Vehicle No / Customer..." />
+            <select id="statusFilter" class="select">
+              <option value="ALL">All</option>
+              <option value="Draft">Draft</option>
+              <option value="Submitted">Submitted</option>
+            </select>
+            <button id="btnExport">Export JSON</button>
             <button id="btnClearAll" class="danger">Clear All</button>
           </div>
         </div>
 
-        <!-- Analytics -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Vehicles</div>
-            <div id="statTotal" class="stat-value">0</div>
-            <div class="stat-foot" id="resultsMeta">Showing 0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">2W</div>
-            <div id="stat2W" class="stat-value">0</div>
-            <div class="stat-foot">Two wheelers</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">SUV</div>
-            <div id="statSUV" class="stat-value">0</div>
-            <div class="stat-foot">Sports utility</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">LCV</div>
-            <div id="statLCV" class="stat-value">0</div>
-            <div class="stat-foot">Light commercial</div>
-          </div>
-        </div>
-
-        <!-- Filters -->
-        <div class="dash-toolbar">
-          <div class="toolbar-left">
-            <div class="field">
-              <span class="field-label">Search</span>
-              <input id="searchBox" class="search" placeholder="Search by Inventory No / Vehicle / Customer..." />
-            </div>
-            <div class="field">
-              <span class="field-label">Status</span>
-              <select id="statusFilter" class="select">
-                <option value="ALL">All</option>
-                <option value="Draft">Draft</option>
-                <option value="Submitted">Submitted</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Record cards -->
-        <div id="recordsList" class="records cards"></div>
+        <div id="recordsList" class="records"></div>
       </div>
     </section>
 
-<!-- FORM VIEW (PDF-like) -->
+    <!-- FORM VIEW -->
     <section id="formView" class="hidden">
-
       <div class="paper">
+
         <!-- Header like the PDF -->
         <div class="paper-header">
           <div class="paper-header-row">
@@ -110,6 +152,12 @@
             </div>
 
             <div class="top-right">
+              <!-- NEW: Form Branch Selector -->
+              <div class="sr-row">
+                <span class="label">Branch</span>
+                <select id="formBranch" class="line-input sm"></select>
+              </div>
+
               <div class="sr-row">
                 <span class="label">Sl. No.</span>
                 <input id="slNo" class="line-input sm" placeholder="e.g., 138" />
@@ -122,12 +170,6 @@
           </div>
 
           <div class="paper-title">INVENTORY OF ITEM IN VEHICLE</div>
-        </div>
-
-        <!-- Lock banner (shown when record is Submitted) -->
-        <div id="lockBanner" class="lock-banner hidden no-print">
-          <div class="lock-title">This record is locked</div>
-          <div class="lock-sub">Status is <b>Submitted</b>. You can view/print, but editing is disabled.</div>
         </div>
 
         <!-- Main form table -->
@@ -148,9 +190,7 @@
             <td>Repo Agency Name</td>
             <td><input id="repoAgencyName" class="line-input" /></td>
             <td>Vehicle seized at (Date/Time)</td>
-            <td>
-              <input id="seizedAt" class="line-input" type="datetime-local" />
-            </td>
+            <td><input id="seizedAt" class="line-input" type="datetime-local" /></td>
           </tr>
           <tr>
             <td>Yard in (Date/Time)</td>
@@ -181,7 +221,7 @@
           </tr>
         </table>
 
-        <!-- Documents + Tyres -->
+        <!-- Documents + Odometer/Fuel -->
         <div class="two-col">
           <div class="box">
             <div class="box-title">Documents Received</div>
@@ -228,6 +268,7 @@
           </div>
         </div>
 
+        <!-- Tyres -->
         <div class="box mt8">
           <div class="box-title">Tyres (Side / Make / Size / No. / Original or Retread)</div>
           <table class="tyre-table">
@@ -416,24 +457,29 @@
           </div>
         </div>
 
-        <!-- Photos -->
+        <!-- NEW: Car Photos Upload -->
         <div class="box mt8 no-print">
-          <div class="box-title">Photos (Demo)</div>
+          <div class="box-title">Car Photos Upload</div>
           <div class="photo-controls">
             <select id="photoType" class="line-input">
               <option value="Front">Front</option>
               <option value="Rear">Rear</option>
               <option value="Left">Left</option>
               <option value="Right">Right</option>
+              <option value="Interior">Interior</option>
               <option value="Odometer">Odometer</option>
               <option value="EnginePlate">Engine Plate</option>
               <option value="ChassisPlate">Chassis Plate</option>
               <option value="Damage">Damage</option>
               <option value="Other">Other</option>
             </select>
-            <input id="photoFile" type="file" accept="image/*" />
-            <button id="btnAddPhoto">Add Photo</button>
+
+            <input id="photoFiles" type="file" accept="image/*" multiple />
+            <button id="btnAddPhotos">Add Photos</button>
+            <button id="btnClearPhotos" class="danger">Clear Photos</button>
           </div>
+
+          <div class="meta">Tip: Select multiple images in one shot and click “Add Photos”.</div>
           <div id="photoGrid" class="photo-grid"></div>
         </div>
 
@@ -469,19 +515,17 @@
             <input id="inventoryNo" class="line-input sm" disabled />
           </div>
           <div class="right">
-            <button id="btnSaveDraft" class="primary">Save Draft</button>
+            <button id="btnSaveDraft">Save Draft</button>
             <button id="btnSubmit" class="primary">Submit</button>
+            <button id="btnCancel" class="ghost">Cancel</button>
             <button id="btnDelete" class="danger">Delete</button>
-            <button id="btnCancel" class="ghost">Back</button>
           </div>
         </div>
 
-      </div><!-- /paper -->
+      </div>
     </section>
-
   </main>
 
-  <!-- Scripts -->
   <script src="storage.js"></script>
   <script src="app.js"></script>
 </body>
